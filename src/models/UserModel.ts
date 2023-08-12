@@ -7,6 +7,7 @@ export interface IUser {
   email: string,
   password: string,
   created: string,
+  activated: boolean
 }
 
 class UserModel {
@@ -29,6 +30,20 @@ class UserModel {
     const find = await this.mysql.query({ query, values: [login], })
 
     return (find as [{ 'COUNT(*)': number }])[0]['COUNT(*)']
+  }
+
+  public async updatePassword(userId: number, hashPassword: string) {
+    await this.mysql.connect()
+
+    const query = 'UPDATE `users` SET `password` = ? WHERE `id` = ?'
+    await this.mysql.query({ query, values: [hashPassword, userId] })
+  }
+
+  public async load(id: number) {
+    await this.mysql.connect()
+
+    const query = 'SELECT * FROM `users` WHERE `id` = ? LIMIT 1'
+    return (await this.mysql.query({ query, values: [id] }) as IUser[])?.[0]
   }
 
   public async findOne(field: 'email' | 'login', value: string) {

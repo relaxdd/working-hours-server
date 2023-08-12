@@ -1,23 +1,30 @@
 import path from 'path'
 import { __abs_path } from './defines'
-import express from 'express'
+import express, { json } from 'express'
 import { config } from 'dotenv'
 import router from './router'
+import cors from './middlewares/cors'
 
 config({
   path: path.resolve(__abs_path, '.env.development'),
   debug: true
 })
 
-const PORT = process?.env?.['PORT'] || 5000
+const SERVER_PORT = process?.env?.['PORT'] || 5000
+const CLIENT_PORT = process?.env?.['CLIENT_PORT']
 
 function main() {
   const app = express()
 
+  if (CLIENT_PORT) {
+    app.use(cors({ origin: `http://localhost:3000` }))
+  }
+
+  app.use(json())
   app.use('/api', router)
 
-  app.listen(PORT, () => {
-    console.log(`[express]: Server is running at ${PORT} port`)
+  app.listen(SERVER_PORT, () => {
+    console.log(`[express]: Server is running at ${SERVER_PORT} port`)
   })
 }
 

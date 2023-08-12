@@ -15,3 +15,8 @@ export const loginSchema = Joi.object({
   login: Joi.string().required(),
   password: fieldsSchema.password,
 })
+
+export const restoreSchema = Joi.object({
+  password: fieldsSchema.password,
+  confirm: fieldsSchema.password
+})

@@ -1,8 +1,12 @@
 import { NextFunction, Request, Response } from 'express'
 import JwtService from '../services/JwtService'
 
+export function extractToken(req: Request) {
+  return req.header('Authorization')?.split(' ')?.at(-1)?.trim()
+}
+
 function checkAuth(req: Request, res: Response, next: NextFunction): Response | void {
-  const token = req.header('Authorization')?.split(' ')?.at(-1)?.trim()
+  const token = extractToken(req)
 
   function notAuthorized() {
     const error = 'Вы не авторизированны!'

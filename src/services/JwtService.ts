@@ -13,6 +13,14 @@ class JwtService {
     return jsonwebtoken.sign(payload, secret, params)
   }
 
+  public static decode(token: string) {
+    try {
+      return jsonwebtoken.decode(token) as JwtPayload
+    } catch (e) {
+      return false
+    }
+  }
+
   public static verify(token: string): JwtPayload | false {
     const secret = JwtService.secret
 
