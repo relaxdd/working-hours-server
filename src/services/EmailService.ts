@@ -1,14 +1,6 @@
 import nodemailer from 'nodemailer'
 import Mail from 'nodemailer/lib/mailer'
 
-interface ISmtpConfig {
-  from: string,
-  host: string,
-  port: number,
-  user: string,
-  password: string,
-}
-
 class EmailService {
   private static getConfig() {
     const port = process?.env?.['SMTP_PORT']
@@ -56,6 +48,14 @@ class EmailService {
 
     return true
   }
+}
+
+export interface ISmtpConfig {
+  from: string,
+  host: string,
+  port: number,
+  user: string,
+  password: string,
 }
 
 export default EmailService

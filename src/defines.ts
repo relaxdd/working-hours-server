@@ -1,6 +1,22 @@
-import path from 'path'
+export const configDefault = {
+  PORT: 5000,
+  SALT_LENGTH: 10,
+  LIMITER_WINDOW: 60000,
+  LIMITER_MAX_LIMIT: 100,
+}
 
-export const __abs_path = path.resolve(__dirname, '..')
+export const STATUS_CODES = {
+  CONFLICT: 409,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  UNAUTHORIZED: 401,
+  BAD_REQUEST: 400,
+  INTERNAL_SERVER_ERROR: 500,
+}
+
+export const SYSTEM_MESSAGES = {
+  SUCCESS_CONNECT: 'The server has successfully connected to the database',
+}
 
 export const PATTERN = {
   NAME: /[^a-zа-яё ]/iu,

@@ -1,30 +1,50 @@
-import path from 'path'
-import { __abs_path } from './defines'
-import express, { json } from 'express'
+import express from 'express'
+import { join } from 'path'
 import { config } from 'dotenv'
-import router from './router'
-import cors from './middlewares/cors'
+import cors from 'cors'
+import yargs from 'yargs'
+import { hideBin } from 'yargs/helpers'
+import helmet from 'helmet'
+import cookieParser from 'cookie-parser'
+import bodyParser from 'body-parser'
+import { errors } from 'celebrate'
+import limiter from './middlewares/limiter'
+import apiRouter from './modules/apiRouter'
+import errorHandler from './middlewares/errorHandler'
+import connect from './connect'
+
+export const argv = yargs(hideBin(process.argv)).options({
+  port: { type: 'number', default: 5000, number: true },
+  mode: { type: 'string', default: 'development', string: true, choices: ['production', 'development'] }
+}).parseSync()
 
 config({
-  path: path.resolve(__abs_path, '.env.development'),
-  debug: true
+  path: join(process.cwd(), '.env.' + argv.mode),
+  debug: argv.mode === 'development'
 })
 
-const SERVER_PORT = process?.env?.['PORT'] || 5000
-const CLIENT_PORT = process?.env?.['CLIENT_PORT']
+export const { PORT = argv.port, PGCL = '' } = process.env
+export const pgdb = connect(PGCL)
 
 function main() {
   const app = express()
 
-  if (CLIENT_PORT) {
-    app.use(cors({ origin: `http://localhost:3000` }))
-  }
+  app.use(limiter)
+  app.use(helmet())
+  app.use(express.static(process.cwd() + '/public'))
+  app.use(cors({ origin: 'http://localhost:3000' }))
 
-  app.use(json())
-  app.use('/api', router)
+  app.use(cookieParser())
+  app.use(bodyParser.json())
+  app.use(bodyParser.urlencoded({ extended: true }))
 
-  app.listen(SERVER_PORT, () => {
-    console.log(`[express]: Server is running at ${SERVER_PORT} port`)
+  app.use('/api', apiRouter)
+
+  app.use(errors())
+  app.use(errorHandler)
+
+  app.listen(PORT, () => {
+    console.log(`[express]: Server is running at ${PORT} port`)
   })
 }
 
