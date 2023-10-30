@@ -4,12 +4,11 @@ import ApiError from '../../utils/errors/ApiError'
 import UserModel from '../../models/UserModel'
 import JwtService from '../../services/JwtService'
 import EmailService from '../../services/EmailService'
-import jsonwebtoken from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 class AuthService {
   public async createUser(body: RegisterDtoType): Promise<void> {
-    const model = new UserModel()
-    const count = await model.getCountByLogin(body.login)
+    const count = await UserModel.getCountByLogin(body.login)
 
     if (!count) {
       const error = 'Пользователь с таким логином уже существует'
@@ -17,12 +16,11 @@ class AuthService {
     }
 
     const password = await bcryptjs.hash(body.password, 10)
-    await model.create({ login: body.login, email: body.email, password })
+    await UserModel.create({ login: body.login, email: body.email, password })
   }
 
   public async authorization(body: { login: string, password: string }) {
-    const model = new UserModel()
-    const user = await model.findOne('login', body.login)
+    const user = await UserModel.findByLogin(body.login)
 
     if (!user) {
       const error = 'Пользователь с таким логином не найден'
@@ -46,8 +44,7 @@ class AuthService {
   }
 
   public async restoreAccess(login: string) {
-    const model = new UserModel()
-    const user = await model.findOne('login', login)
+    const user = await UserModel.findByLogin(login)
 
     if (!user) {
       const error = 'Пользователь с таким логином не найден!'
@@ -79,7 +76,7 @@ class AuthService {
     }
 
     const params = { expiresIn: '10m' }
-    const token = jsonwebtoken.sign(payload, secret, params)
+    const token = jwt.sign(payload, secret, params)
     const link = `http://localhost:3000/restore?token=${token}`
 
     // ********** Mail ********** //
@@ -114,16 +111,14 @@ class AuthService {
     let payload: IRestorePayload
 
     try {
-      payload = jsonwebtoken.verify(body.token, secret) as IRestorePayload
+      payload = jwt.verify(body.token, secret) as IRestorePayload
     } catch (e) {
       const error = 'Срок действия ссылки уже истек или она не валидна!'
       throw new ApiError(error, 400)
     }
 
     const password = await bcryptjs.hash(body.password, 10)
-
-    const model = new UserModel()
-    await model.updatePassword(payload.id, password)
+    await UserModel.updatePassword(payload.id, password)
   }
 
   // ************* Private methods ************* //

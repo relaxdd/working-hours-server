@@ -15,7 +15,7 @@ function errorHandler(
     message = 'Что-то пошло не так'
   }
 
-  res.status(statusCode).send({ message })
+  res.status(statusCode).send({ error: message })
 }
 
 export default errorHandler
