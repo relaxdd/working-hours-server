@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "serve": "ts-node --transpile-only src/index.ts NODE_ENV=production --mode production",
+    "serve": "ts-node --transpile-only src/index.ts NODE_ENV=production --mode=production --port=4000",
     "start": "nodemon --watch \"src/**\" --ext \"ts,json\" --ignore \"src/**/*.spec.ts\" --exec \"ts-node src/index.ts NODE_ENV=development --mode development\"",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
   },

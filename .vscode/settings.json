@@ -1,0 +1,7 @@
+{
+    "typescript.format.semicolons": "remove",
+    "javascript.format.semicolons": "insert",
+    "editor.wordWrapColumn": 120,
+    "prettier.printWidth": 100,
+    "prettier.semi": false
+}

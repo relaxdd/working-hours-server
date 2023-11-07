@@ -25,12 +25,14 @@ CREATE TABLE IF NOT EXISTS table_rows
     id SERIAL PRIMARY KEY NOT NULL
 );
 
-# INSERT INTO `tables` (name, password, user_id) VALUES ('', NULL, '');
+# INSERT INTO `tables` (name, user_id) VALUES ('', '');
 INSERT INTO users (login, email, password)
 VALUES ('awenn2015', 'awenn2015@gmail.com', '$2y$10$tMzJkczY.AKQLWhlrjLtZOmNVrah1.MuFTR/Q/L5AuzaE1rbY4.FW');
 
 # add new column in table
-# ALTER TABLE `users` ADD `activated` TINYINT(1) NOT NULL DEFAULT 0 after `created`
+# ALTER TABLE `users` ADD COLUMN `activated` TINYINT(1) NOT NULL DEFAULT 0 after `created`
+# ALTER TABLE IF EXISTS "tables" ADD COLUMN "password" VARCHAR(255) DEFAULT null;
+# ALTER TABLE IF EXISTS "table_rows" ADD COLUMN "title" VARCHAR(191) NOT NULL;
 
 # Deleting users
 # DELETE

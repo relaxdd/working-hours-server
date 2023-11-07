@@ -1,6 +1,28 @@
-import { celebrate } from 'celebrate'
-import Joi from 'joi'
+import { celebrate } from "celebrate"
+import {
+  deleteEntityScheme,
+  optionsScheme,
+  compareScheme,
+  validateIdScheme,
+  passwordScheme,
+} from "./data.scheme"
 
 export const validateIdQuery = celebrate({
-  query: Joi.object({ tableId: Joi.number().integer().positive().required() })
+  query: validateIdScheme,
+})
+
+export const validateCompare = celebrate({
+  body: compareScheme,
+})
+
+export const validatePassword = celebrate({
+  body: passwordScheme,
+})
+
+export const validateUpdateOptions = celebrate({
+  body: optionsScheme,
+})
+
+export const validateDeleteEntity = celebrate({
+  body: deleteEntityScheme,
 })
