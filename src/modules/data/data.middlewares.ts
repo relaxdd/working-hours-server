@@ -1,28 +1,33 @@
 import { celebrate } from "celebrate"
 import {
-  deleteEntityScheme,
-  optionsScheme,
-  compareScheme,
-  validateIdScheme,
-  passwordScheme,
+  deleteEntitySchema,
+  optionsSchema,
+  compareSchema,
+  validateIdSchema,
+  passwordSchema,
+  updateTableRowsSchema,
 } from "./data.scheme"
 
 export const validateIdQuery = celebrate({
-  query: validateIdScheme,
+  query: validateIdSchema,
 })
 
 export const validateCompare = celebrate({
-  body: compareScheme,
+  body: compareSchema,
 })
 
 export const validatePassword = celebrate({
-  body: passwordScheme,
+  body: passwordSchema,
 })
 
 export const validateUpdateOptions = celebrate({
-  body: optionsScheme,
+  body: optionsSchema,
 })
 
 export const validateDeleteEntity = celebrate({
-  body: deleteEntityScheme,
+  body: deleteEntitySchema,
+})
+
+export const validateTableRows = celebrate({
+  body: updateTableRowsSchema
 })

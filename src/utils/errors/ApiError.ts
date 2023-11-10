@@ -1,13 +1,13 @@
 class ApiError extends Error {
-  public statusCode: number
-  public additional: Record<string, any> | undefined
+  public status: number
+  public data: Record<string, any> | undefined
 
-  constructor(message: string, statusCode: number, additional?: Record<string, any>) {
+  constructor(message: string, status: number, data?: Record<string, any>) {
     super(message)
 
     this.name = 'ApiError'
-    this.statusCode = statusCode
-    this.additional = additional
+    this.status = status
+    this.data = data
   }
 }
 

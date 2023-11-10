@@ -8,11 +8,12 @@ import helmet from "helmet"
 import cookieParser from "cookie-parser"
 import bodyParser from "body-parser"
 import { errors } from "celebrate"
+import pgp from "pg-promise"
 import limiter from "./middlewares/limiter"
 import apiRouter from "./modules/apiRouter"
 import errorHandler from "./middlewares/errorHandler"
-import connect from "./connect"
 import { configDefault } from "./defines"
+import rootRouter from "./modules/rootRouter"
 
 export const argv = yargs(hideBin(process.argv))
   .options({
@@ -41,7 +42,12 @@ const {
   monolite: IS_MONOLITE_ARCH = Boolean(+(process.env?.["IS_MONOLITE_ARCH"] || 0)),
 } = argv
 
-export const pgdb = connect(PGCL)
+export const pgdb = pgp({
+  // error: (err) => {
+  //   console.log(err.constructor.name);
+  //   throw err
+  // }
+})(PGCL)
 
 function main() {
   const app = express()
@@ -51,9 +57,10 @@ function main() {
 
   if (!IS_MONOLITE_ARCH && argv.mode === "development") {
     app.use(cors({ origin: `http://localhost:${CLIENT}` }))
-  } else {
+  }
+
+  if (IS_MONOLITE_ARCH) {
     app.use(express.static(process.cwd() + "/public"))
-    app.all("*", (_, res) => res.status(404).end())
   }
 
   app.use(cookieParser())
@@ -65,6 +72,10 @@ function main() {
   app.use(errors())
   app.use(errorHandler)
 
+  if (IS_MONOLITE_ARCH) {
+    app.use(rootRouter)
+  }
+
   app.listen(PORT, () => {
     console.log(`[express]: Server is running at ${PORT} port`)
   })
@@ -73,6 +84,6 @@ function main() {
 try {
   main()
 } catch (e) {
-  console.log((e as Error).message)
+  console.error((e as Error).message)
   process.exit(0)
 }

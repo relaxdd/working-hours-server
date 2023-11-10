@@ -1,17 +1,12 @@
-import { NextFunction, Request, Response } from 'express'
-import { RequestWithAuth } from '../../middlewares/checkAuth'
-import TableModel from '../../models/TableModel'
-import ApiError from '../../utils/errors/ApiError'
+import { NextFunction, Request, Response } from "express"
+import { RequestWithAuth } from "../../middlewares/checkAuth"
+import TableModel from "../../models/TableModel"
+import ApiError from "../../utils/errors/ApiError"
+
+type ReqIdParam = { id: string }
+type ReqBodyWithName = { name: string }
 
 class TableController {
-  public async getAllData(req: Request, res: Response, next: NextFunction) {
-    try {
-
-    } catch (err) {
-      return next(err)
-    }
-  }
-
   public async getAllTables(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = TableController.extractUserId(req)
@@ -35,7 +30,11 @@ class TableController {
     }
   }
 
-  public async renameTable(req: Request<ReqIdParam, any, ReqBodyWithName>, res: Response, next: NextFunction) {
+  public async renameTable(
+    req: Request<ReqIdParam, any, ReqBodyWithName>,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = TableController.extractUserId(req)
       const tableId = +req.params.id
@@ -43,20 +42,24 @@ class TableController {
 
       await TableModel.setName(userId, tableId, name)
 
-      return res.json({ message: 'Таблица успешно переименована' })
+      return res.json({ message: "Таблица успешно переименована" })
     } catch (err) {
       return next(err)
     }
   }
 
-  public async createTable(req: Request<any, any, ReqBodyWithName>, res: Response, next: NextFunction) {
+  public async createTable(
+    req: Request<any, any, ReqBodyWithName>,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = TableController.extractUserId(req)
       const { name } = req.body
 
       const table = await TableModel.createTable(userId, name)
 
-      return res.json({ message: 'Таблица успешно создана', table })
+      return res.json({ message: "Таблица успешно создана", table })
     } catch (err) {
       return next(err)
     }
@@ -69,7 +72,7 @@ class TableController {
 
       await TableModel.deleteOne(userId, tableId)
 
-      return res.json({ message: 'Таблица успешно удалена' })
+      return res.json({ message: "Таблица успешно удалена" })
     } catch (err) {
       return next(err)
     }
@@ -79,12 +82,9 @@ class TableController {
 
   private static extractUserId(req: Request) {
     const userId = (req as unknown as RequestWithAuth<{ id: number }>)?.user?.id
-    if (!userId) throw new ApiError('Unauthorized', 401)
+    if (!userId) throw new ApiError("Unauthorized", 401)
     return userId
   }
 }
 
-type ReqIdParam = { id: string }
-type ReqBodyWithName = { name: string }
-
-export default new TableController
+export default new TableController()

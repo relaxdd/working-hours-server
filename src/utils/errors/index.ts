@@ -7,9 +7,9 @@ export function defaultError(res: Response, err: ApiError) {
       const defText = 'На сервере произошла не предвиденная ошибка!'
 
       let obj = { error: err?.message || defText }
-      if (err?.additional) obj = { ...obj, ...err.additional }
+      if (err?.data) obj = { ...obj, ...err.data }
 
-      return res.status(err?.statusCode || 500).json(obj)
+      return res.status(err?.status || 500).json(obj)
     default:
       return res.status(500).json({ error: err.message })
   }

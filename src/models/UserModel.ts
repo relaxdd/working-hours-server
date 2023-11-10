@@ -1,6 +1,6 @@
 import { RegisterDtoType } from '../modules/auth/auth.types'
 import { pgdb } from '../index'
-import { IUser } from './types'
+import { IUser } from '../@types'
 
 class UserModel {
   public static async create({ login, email, password }: Omit<RegisterDtoType, 'confirm'>) {

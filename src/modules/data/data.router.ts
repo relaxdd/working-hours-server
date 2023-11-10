@@ -7,6 +7,7 @@ import {
   validateCompare,
   validateUpdateOptions,
   validatePassword,
+  validateTableRows,
 } from "./data.middlewares"
 
 const dataRouter = Router()
@@ -18,5 +19,6 @@ dataRouter.post("/compare", validateCompare, dataController.comparePassword)
 dataRouter.post("/password", validatePassword, dataController.updatePassword)
 dataRouter.patch("/options", validateUpdateOptions, dataController.updateOptions)
 dataRouter.delete("/entity", validateDeleteEntity, dataController.deleteEntities)
+dataRouter.patch("/rows", validateTableRows, dataController.updateTableRows)
 
 export default dataRouter

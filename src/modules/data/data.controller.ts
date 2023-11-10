@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express"
-import TableModel from "../../models/TableModel"
-import dataService from "./data.service"
-import { IOptions, ITransformOptions } from "../../models/types"
-import { ComparePassword, DeleteEntities, UpdatePassword } from "./data.scheme"
 import bcryptjs from "bcryptjs"
+import TableModel from "../../models/TableModel"
+import { ComparePassword, DeleteEntities, UpdatePassword, UpdateTableRows } from "./data.scheme"
+import TransformService from "../../services/TransformService"
+import type { TransformOptions } from "../../@types"
 
 class DataController {
   public async getAllData(
@@ -14,8 +14,8 @@ class DataController {
     try {
       const { rows = [], options, entities } = await TableModel.loadAllBound(+req.query.tableId)
 
-      const tOptions = dataService.transformOptions(options, entities)
-      const tTableRows = dataService.transformTableRows(rows)
+      const tOptions = TransformService.transformOptions(options, entities)
+      const tTableRows = TransformService.transformTableRows(rows)
 
       return res.json({ rows: tTableRows, options: tOptions })
     } catch (err) {
@@ -62,12 +62,12 @@ class DataController {
   }
 
   public async updateOptions(
-    req: Request<any, any, ITransformOptions>,
+    req: Request<any, any, TransformOptions>,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const { options, entities } = dataService.normalizeOptions(req.body)
+      const { options, entities } = TransformService.normalizeOptions(req.body)
 
       await TableModel.updateEntities(entities)
       await TableModel.updateOptions(options)
@@ -85,6 +85,21 @@ class DataController {
   ) {
     try {
       await TableModel.deleteEntities(req.body)
+      return res.end()
+    } catch (err) {
+      return next(err)
+    }
+  }
+
+  public async updateTableRows(
+    req: Request<any, any, UpdateTableRows>,
+    res: Response,
+    next: NextFunction
+  ) {
+    const { tableRows, ...body } = req.body
+    try {
+      const nTableRows = TransformService.normalizeTableRows(tableRows)
+      await TableModel.updateTableRows({ ...body, tableRows: nTableRows })
       return res.end()
     } catch (err) {
       return next(err)
