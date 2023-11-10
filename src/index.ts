@@ -38,7 +38,7 @@ const { PGCL = "" } = process.env
 
 const {
   port: PORT = process.env?.["PORT"] || configDefault.PORT,
-  client: CLIENT = process.env?.["CLIENT"] || configDefault.CLIENT,
+  client: CLIENT = process.env?.["CLIENT_PORT"] || configDefault.CLIENT,
   monolite: IS_MONOLITE_ARCH = Boolean(+(process.env?.["IS_MONOLITE_ARCH"] || 0)),
 } = argv
 

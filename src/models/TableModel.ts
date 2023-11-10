@@ -99,7 +99,7 @@ class TableModel {
     })
   }
 
-  // TODO: Доправить потом запросы
+  // TODO: Поправить потом запросы
 
   /**
    * @param userId Идентификатор пользователя
@@ -140,7 +140,7 @@ class TableModel {
 
         const query = isCreated
           ? 'INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id") VALUES ($1, $2, $3, $4, $5)'
-          : 'UPDATE entities "SET" "key" = $1, "rate" = $2, "text" = $3 WHERE "option_id" = $4 AND "table_id" = $5 AND "id" = $6'
+          : 'UPDATE entities SET "key" = $1, "rate" = $2, "text" = $3 WHERE "option_id" = $4 AND "table_id" = $5 AND "id" = $6'
         const values = [entity.key, entity.rate, entity.text, entity.option_id, entity.table_id]
 
         if (!isCreated) values.push(entity.id)
@@ -222,7 +222,7 @@ class TableModel {
       await t.none(`DELETE FROM "table_rows" WHERE "table_id" = $1`, [tableId])
 
       const query = `UPDATE "options" SET "type_adding" = $1, "round_step" = $2, "hidden_cols" = $3, "using_keys" = $4 
-      WHERE "table_id" = $5 RETURNING "id" "optionsId"`
+      WHERE "table_id" = $5 RETURNING "id" AS "optionsId"`
 
       const { optionsId } = await t.one<{ optionsId: number }>(query, [
         options.type_adding,
@@ -313,7 +313,7 @@ class TableModel {
           const format = as.format(dirty, { fields, values })
           const query = as.format(format, data)
 
-          await t.none(`INSERT INTO "table_rows" \${query:raw}`, { query })
+          await t.none('INSERT INTO "table_rows" \${query:raw}', { query })
         } //
         else if (row?.isUpdated && !row?.isCreated) {
           const updated = row?.updatedKeys || []
