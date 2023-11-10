@@ -79,10 +79,17 @@ export type TransformTableRow = Omit<ITableRow, "is_paid" | "table_id" | "entity
   entityId: ITableRow["entity_id"]
 }
 
+export type CanBeUpdatedKeyTableRows = keyof Omit<ITableRow, "id" | "table_id">
+export type CanBeUpdatedKeysTableRows = CanBeUpdatedKeyTableRows[]
+
+export type CanBeUpdatedKeyTransformTableRows = keyof Omit<TransformTableRow, "id" | "tableId">
+export type CanBeUpdatedKeysTransformTableRows = CanBeUpdatedKeyTransformTableRows[]
+
 export type MaybeNewOrUpdatedTransformTableRow = TransformTableRow &
-  NewOrEditArrayFields & { updatedKeys: string[] }
-  
-export type MaybeNewOrUpdatedTableRow = ITableRow & NewOrEditArrayFields & { updatedKeys?: string[] |undefined }
+  NewOrEditArrayFields & { updatedKeys?: CanBeUpdatedKeysTransformTableRows | undefined }
+
+export type MaybeNewOrUpdatedTableRow = ITableRow &
+  NewOrEditArrayFields & { updatedKeys?: CanBeUpdatedKeysTransformTableRows | undefined }
 export type TransformImportTableRow = Omit<TransformTableRow, "id" | "order" | "tableId">
 export type ImportTableRows = Omit<ITableRow, "id" | "order" | "table_id">
 

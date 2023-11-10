@@ -9,9 +9,16 @@ import {
   ImportOptions,
   ImportEntity,
   MaybeNewOrUpdatedTableRow,
+  CanBeUpdatedKeysTransformTableRows,
+  CanBeUpdatedKeyTableRows,
+  TransformTableRow,
 } from "../@types"
 import ApiError from "../utils/errors/ApiError"
 import { DeleteEntities, UpdatePassword, UpdateTableRows } from "../modules/data/data.scheme"
+import { as } from "pg-promise"
+
+const pgp = require("pg-promise")
+const helpers = pgp.helpers
 
 type TImportTableRowsWithOptionsPayload = {
   tableId: number
@@ -27,15 +34,17 @@ class TableModel {
   public static async loadAllBound(tableId: number) {
     return await pgdb.task(async (t) => {
       const entities = await t.manyOrNone<IEntity>(
-        "SELECT * FROM entities WHERE table_id = $1",
+        'SELECT * FROM "entities" WHERE table_id = $1',
         tableId
       )
+
       const options = await t.oneOrNone<IOptions>(
-        "SELECT * FROM options WHERE table_id = $1 LIMIT 1",
+        'SELECT * FROM "options" WHERE table_id = $1 LIMIT 1',
         tableId
       )
+
       const rows = await t.manyOrNone<ITableRow>(
-        "SELECT * FROM table_rows WHERE table_id = $1",
+        'SELECT * FROM "table_rows" WHERE table_id = $1',
         tableId
       )
 
@@ -44,40 +53,53 @@ class TableModel {
   }
 
   public static async findAll(userId: number): Promise<ITable[]> {
-    const query = "SELECT * FROM tables WHERE user_id = $1"
-    return await pgdb.manyOrNone<ITable>(query, userId)
+    return await pgdb.manyOrNone<ITable>(`SELECT * FROM "tables" WHERE "user_id" = $1`, [userId])
   }
 
   public static async findOne(userId: number, tableId: number) {
-    const query = 'SELECT *, user_id as "userId" FROM tables WHERE id = $1 AND user_id = $2'
-    return await pgdb.oneOrNone<ITable>(query, [tableId, userId])
+    return await pgdb.oneOrNone<ITable>(
+      `SELECT *, "user_id" as "userId" 
+      FROM "tables" WHERE id = $1 AND "user_id" = $2`,
+      [tableId, userId]
+    )
   }
 
   public static async setCount(userId: number, tableId: number, count: number) {
-    const query = "UPDATE tables SET count = $1 WHERE id = $2 AND user_id = $3"
-    await pgdb.none(query, [count, tableId, userId])
+    await pgdb.none(
+      `UPDATE "tables" 
+      SET "count" = $1 WHERE "id" = $2 AND "user_id" = $3`,
+      [count, tableId, userId]
+    )
   }
 
   public static async setName(userId: number, tableId: number, name: string) {
-    const query = "UPDATE tables SET name = $1 WHERE id = $2 AND user_id = $3"
-    await pgdb.none(query, [name, tableId, userId])
+    await pgdb.none(
+      `UPDATE "tables" SET "name" = $1 
+      WHERE "id" = $2 AND "user_id" = $3`,
+      [name, tableId, userId]
+    )
   }
 
   public static async deleteOne(userId: number, tableId: number) {
-    const query = 'SELECT user_id as "userId" FROM tables WHERE id = $1'
-    const resId = await pgdb.oneOrNone<{ userId: number }>(query, tableId)
+    const resId = await pgdb.oneOrNone<{ userId: number }>(
+      `SELECT "user_id" as "userId" 
+      FROM "tables" WHERE "id" = $1`,
+      [tableId]
+    )
 
     if (!resId) throw new ApiError("Таблицы с таким ID не существует", 400)
 
     if (resId.userId !== userId) throw new ApiError("Вам не разрешено удалять эту таблицу", 403)
 
     await pgdb.task(async (t) => {
-      await t.none("DELETE FROM table_rows WHERE table_id = $1", tableId)
-      await t.none("DELETE FROM entities WHERE table_id = $1", tableId)
-      await t.none("DELETE FROM options WHERE table_id = $1", tableId)
-      await t.none("DELETE FROM tables WHERE id = $1 ", tableId)
+      await t.none(`DELETE FROM "table_rows" WHERE "table_id" = $1`, [tableId])
+      await t.none(`DELETE FROM "entities" WHERE "table_id" = $1`, [tableId])
+      await t.none(`DELETE FROM "options" WHERE "table_id" = $1`, [tableId])
+      await t.none(`DELETE FROM "tables" WHERE "id" = $1`, [tableId])
     })
   }
+
+  // TODO: Доправить потом запросы
 
   /**
    * @param userId Идентификатор пользователя
@@ -268,27 +290,71 @@ class TableModel {
 
       for (const row of tableRows) {
         if (row?.isCreated) {
-          const query = `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "order", "entity_id", "table_id")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`
+          const keys = [
+            "start",
+            "finish",
+            "is_paid",
+            "title",
+            "description",
+            "order",
+            "entity_id",
+            "table_id",
+          ] satisfies (keyof ITableRow)[]
 
-          await t.none(query, [
-            row.start,
-            row.finish,
-            row.is_paid,
-            row.title,
-            row.description,
-            row.order,
-            row.entity_id,
-            tableId,
-          ])
-        } else if (row?.isUpdated && !row?.isCreated) {
-          // const map = [{ front: "isPaid", back: "is_paid" }]
-          // const build = '"' + row.updatedKeys.join('", "') + '"'
-          // const query = `UPDATE "table_rows" SET `
-          // TODO: Дописать обновление
+          const fields = keys.map((k) => `"${k}"`).join(", ")
+          const values = keys.map((k) => `\${${k}}`).join(", ")
+
+          const data = keys.reduce((obj, k) => {
+            obj[k] = row[k]
+            return obj
+          }, {} as any)
+
+          const dirty = `(\${fields:raw}) VALUES (\${values:raw});`
+          const format = as.format(dirty, { fields, values })
+          const query = as.format(format, data)
+
+          await t.none(`INSERT INTO "table_rows" \${query:raw}`, { query })
+        } //
+        else if (row?.isUpdated && !row?.isCreated) {
+          const updated = row?.updatedKeys || []
+          if (!updated.length) continue
+
+          const unique = [...new Set(updated)]
+          const replace = TableModel.replaceTransformTableRowsKeys(unique)
+          const { query, data } = TableModel.buildQueryByKeys(replace, row)
+          const fields = as.format(query, data)
+
+          await t.none(
+            `UPDATE "table_rows" SET \${fields:raw} 
+            WHERE "id" = \${id} AND "table_id" = \${tableId}`,
+            { fields, id: row.id, tableId }
+          )
         }
       }
     })
+  }
+
+  private static replaceTransformTableRowsKeys(keys: CanBeUpdatedKeysTransformTableRows) {
+    type Test = keyof Pick<TransformTableRow, "entityId" | "isPaid">
+    const map: Record<Test, CanBeUpdatedKeyTableRows> = {
+      entityId: "entity_id",
+      isPaid: "is_paid",
+    }
+
+    return keys.map((front) => map?.[front as Test] || front)
+  }
+
+  private static buildQueryByKeys(keys: string[], obj: Record<string, any>) {
+    const { slots, data } = keys.reduce<{ slots: string[]; data: Record<string, any> }>(
+      (acc, k) => {
+        acc.slots.push(`"${k}" = \${${k}}`)
+        acc.data[k] = obj[k]
+        return acc
+      },
+      { slots: [], data: {} }
+    )
+
+    return { query: slots.join(", "), data }
   }
 }
 

@@ -42,11 +42,22 @@ const {
   monolite: IS_MONOLITE_ARCH = Boolean(+(process.env?.["IS_MONOLITE_ARCH"] || 0)),
 } = argv
 
+function getErrorHandling() {
+  if (argv.mode !== "development") {
+    return {}
+  }
+
+  return {
+    error: (err: any, ctx: any) => {
+      console.log(ctx?.query)
+      throw err
+    },
+  }
+}
+
 export const pgdb = pgp({
-  // error: (err) => {
-  //   console.log(err.constructor.name);
-  //   throw err
-  // }
+  capSQL: true,
+  ...getErrorHandling(),
 })(PGCL)
 
 function main() {

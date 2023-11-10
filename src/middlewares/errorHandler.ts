@@ -33,6 +33,7 @@ function errorHandler(
       statusCode: 500,
       message: "На сервере произошла ошибка",
       details: {
+        type: err?.constructor?.name || 'Error',
         message: err.message,
       },
     })

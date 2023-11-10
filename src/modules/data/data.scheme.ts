@@ -73,8 +73,12 @@ export const tableRowsSchema = Joi.array<MaybeNewOrUpdatedTransformTableRow[]>()
     id: idSchema,
     tableId: idSchema,
     entityId: idSchema.allow(null),
-    start: Joi.date().format(HTML5_FMT.DATETIME_LOCAL_MS).required(),
-    finish: Joi.date().format(HTML5_FMT.DATETIME_LOCAL_MS).required(),
+    start: Joi.date()
+      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + "Z"])
+      .required(),
+    finish: Joi.date()
+      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + "Z"])
+      .required(),
     isPaid: Joi.boolean().required(),
     title: Joi.string().allow("").required(),
     description: Joi.string().allow("").required(),
@@ -82,7 +86,9 @@ export const tableRowsSchema = Joi.array<MaybeNewOrUpdatedTransformTableRow[]>()
     isCreated: Joi.boolean().default(false).optional(),
     isUpdated: Joi.boolean().default(false).optional(),
     updatedKeys: Joi.array()
-      .items(Joi.string().allow("start", "finish", "title", "description", "entityId", "isPaid"))
+      .items(
+        Joi.string().allow("start", "finish", "title", "order", "description", "entityId", "isPaid")
+      )
       .optional(),
   })
 )
