@@ -1,12 +1,8 @@
-import BaseJoi from "joi"
-import JoiDate from "@joi/date"
-import { HTML5_FMT } from "moment"
-import type { Extension, Root } from "joi"
-import type {
-  TransformOptions,
-  TransformEntity,
-  MaybeNewOrUpdatedTransformTableRow,
-} from "../../@types"
+import type { Extension, Root } from 'joi'
+import BaseJoi from 'joi'
+import JoiDate from '@joi/date'
+import { HTML5_FMT } from 'moment'
+import type { MaybeNewOrUpdatedTransformTableRow, TransformEntity, TransformOptions, } from '../../@types'
 
 export type ValidateId = { tableId: number }
 export type DeleteEntities = { tableId: number; remove: number[] }
@@ -28,9 +24,9 @@ export const validateIdSchema = Joi.object<ValidateId, true>({
 
 export const compareSchema = Joi.object<ComparePassword, true>({
   password: Joi.string().min(6).required().messages({
-    "string.base": `Поле "password" должно быть типа 'string'`,
-    "string.min": `Поле "password" должен иметь минимальную длину в 6 символов`,
-    "any.required": `Поле "password" является обьязательным полем`,
+    'string.base': `Поле "password" должно быть типа 'string'`,
+    'string.min': `Поле "password" должен иметь минимальную длину в 6 символов`,
+    'any.required': `Поле "password" является обьязательным полем`,
   }),
   hash: Joi.string().required(),
 })
@@ -49,7 +45,9 @@ export const entitySchema = Joi.object<TransformEntity, true>({
   id: idSchema,
   tableId: idSchema,
   optionId: idSchema,
-  key: Joi.string().alphanum().required(),
+  key: Joi.string()
+    .pattern(/^[a-z0-9_-]+$/i)
+    .required(),
   text: Joi.string()
     .pattern(/^[a-zа-я0-9_ ]+$/i)
     .required(),
@@ -64,7 +62,7 @@ export const optionsSchema = Joi.object<TransformOptions, true>({
   dtRoundStep: Joi.number().integer().positive().allow(0).required(),
   hiddenCols: Joi.object().pattern(/^/, Joi.boolean()).required(),
   usingKeys: Joi.object().pattern(/^/, Joi.string()).required(),
-  typeOfAdding: Joi.string().allow("fast", "full").required(),
+  typeOfAdding: Joi.string().allow('fast', 'full').required(),
   listOfTech: Joi.array().items(entitySchema).required(),
 })
 
@@ -74,20 +72,20 @@ export const tableRowsSchema = Joi.array<MaybeNewOrUpdatedTransformTableRow[]>()
     tableId: idSchema,
     entityId: idSchema.allow(null),
     start: Joi.date()
-      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + "Z"])
+      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + 'Z'])
       .required(),
     finish: Joi.date()
-      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + "Z"])
+      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + 'Z'])
       .required(),
     isPaid: Joi.boolean().required(),
-    title: Joi.string().allow("").required(),
-    description: Joi.string().allow("").required(),
+    title: Joi.string().allow('').required(),
+    description: Joi.string().allow('').required(),
     order: idSchema,
     isCreated: Joi.boolean().default(false).optional(),
     isUpdated: Joi.boolean().default(false).optional(),
     updatedKeys: Joi.array()
       .items(
-        Joi.string().allow("start", "finish", "title", "order", "description", "entityId", "isPaid")
+        Joi.string().allow('start', 'finish', 'title', 'order', 'description', 'entityId', 'isPaid')
       )
       .optional(),
   })
