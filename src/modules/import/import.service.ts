@@ -23,8 +23,8 @@ class ImportService {
   }
 
   public async all({ tableFile, optionsFile, tableId, mergeEntities }: TImportAllPayload) {
-    const tableDir = path.join(process.cwd(), tableFile.path)
-    const optionsDir = path.join(process.cwd(), optionsFile.path)
+    const tableDir = tableFile.path
+    const optionsDir = optionsFile.path
 
     try {
       const tableData = await (async () => {
