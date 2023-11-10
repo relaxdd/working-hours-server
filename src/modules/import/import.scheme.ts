@@ -18,6 +18,7 @@ export const tableRowsImportSchema = Joi.array<TransformImportTableRow[]>().item
     isPaid: Joi.boolean().required(),
     title: Joi.string().allow("").required(),
     description: Joi.string().allow("").required(),
+    order: idSchema.optional()
   })
 )
 

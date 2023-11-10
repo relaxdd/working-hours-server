@@ -30,7 +30,7 @@ export interface ITable {
   password: string | null
 }
 
-export type TransformTable = Pick<ITable, "user_id"> & { userId: ITable["user_id"] }
+export type TransformTable = Pick<ITable, 'user_id'> & { userId: ITable['user_id'] }
 
 // ****** entity ****** //
 
@@ -49,15 +49,15 @@ export interface NewOrEditArrayFields {
 }
 
 export type MaybeNewOrUpdatedEntity = IEntity & NewOrEditArrayFields
-export type TypeOfAddingOption = "fast" | "full"
+export type TypeOfAddingOption = 'fast' | 'full'
 
 // TODO: Привести в порядок типы
-export type TransformEntity = Omit<IEntity, "table_id" | "option_id"> & {
-  tableId: IEntity["table_id"]
-  optionId: IEntity["option_id"]
+export type TransformEntity = Omit<IEntity, 'table_id' | 'option_id'> & {
+  tableId: IEntity['table_id']
+  optionId: IEntity['option_id']
 } & NewOrEditArrayFields
 
-export type ImportEntity = Pick<IEntity, "key" | "rate" | "text"> & { id?: number | undefined }
+export type ImportEntity = Pick<IEntity, 'key' | 'rate' | 'text'> & { id?: number | undefined }
 
 // ****** table row ****** //
 
@@ -73,16 +73,16 @@ export interface ITableRow {
   order: number
 }
 
-export type TransformTableRow = Omit<ITableRow, "is_paid" | "table_id" | "entity_id"> & {
-  isPaid: ITableRow["is_paid"]
-  tableId: ITableRow["table_id"]
-  entityId: ITableRow["entity_id"]
+export type TransformTableRow = Omit<ITableRow, 'is_paid' | 'table_id' | 'entity_id'> & {
+  isPaid: ITableRow['is_paid']
+  tableId: ITableRow['table_id']
+  entityId: ITableRow['entity_id']
 }
 
-export type CanBeUpdatedKeyTableRows = keyof Omit<ITableRow, "id" | "table_id">
+export type CanBeUpdatedKeyTableRows = keyof Omit<ITableRow, 'id' | 'table_id'>
 export type CanBeUpdatedKeysTableRows = CanBeUpdatedKeyTableRows[]
 
-export type CanBeUpdatedKeyTransformTableRows = keyof Omit<TransformTableRow, "id" | "tableId">
+export type CanBeUpdatedKeyTransformTableRows = keyof Omit<TransformTableRow, 'id' | 'tableId'>
 export type CanBeUpdatedKeysTransformTableRows = CanBeUpdatedKeyTransformTableRows[]
 
 export type MaybeNewOrUpdatedTransformTableRow = TransformTableRow &
@@ -90,8 +90,8 @@ export type MaybeNewOrUpdatedTransformTableRow = TransformTableRow &
 
 export type MaybeNewOrUpdatedTableRow = ITableRow &
   NewOrEditArrayFields & { updatedKeys?: CanBeUpdatedKeysTransformTableRows | undefined }
-export type TransformImportTableRow = Omit<TransformTableRow, "id" | "order" | "tableId">
-export type ImportTableRows = Omit<ITableRow, "id" | "order" | "table_id">
+export type TransformImportTableRow = Omit<TransformTableRow, 'id' | 'tableId' | 'order'> & { order?: number | undefined }
+export type ImportTableRows = Omit<ITableRow, 'id' | 'table_id' | 'order'> & { order?: number | undefined }
 
 // ****** options ****** //
 
@@ -104,7 +104,7 @@ export interface IOptions {
   using_keys: Record<string, string>
 }
 
-export type TransformOptions = Pick<IOptions, "id"> & {
+export type TransformOptions = Pick<IOptions, 'id'> & {
   tableId: number
   dtRoundStep: number
   typeOfAdding: TypeOfAddingOption
@@ -113,8 +113,8 @@ export type TransformOptions = Pick<IOptions, "id"> & {
   listOfTech: TransformEntity[]
 }
 
-export type TransformImportOptions = Omit<TransformOptions, "id" | "tableId" | "listOfTech"> & {
+export type TransformImportOptions = Omit<TransformOptions, 'id' | 'tableId' | 'listOfTech'> & {
   listOfTech: ImportEntity[]
 }
 
-export type ImportOptions = Omit<IOptions, "id" | "table_id">
+export type ImportOptions = Omit<IOptions, 'id' | 'table_id'>
