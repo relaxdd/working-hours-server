@@ -1,6 +1,6 @@
 export const configDefault = {
   PORT: 4000,
-  CLIENT: 5173,
+  CLIENT_HOST: 'http://localhost',
   SALT_LENGTH: 10,
   LIMITER_WINDOW: 60000,
   LIMITER_MAX_LIMIT: 100
