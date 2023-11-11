@@ -9,7 +9,7 @@ export const validateIdParam = celebrate({
 
 export const validateCreateTable = celebrate({
   body: Joi.object({
-    name: Joi.string().min(3).alphanum().required()
+    name: Joi.string().min(3).pattern(/^[a-zа-я0-9_ ]+$/i).required()
   })
 })
 
