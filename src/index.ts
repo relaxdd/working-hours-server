@@ -66,12 +66,10 @@ function main() {
   app.use(limiter)
   app.use(helmet())
 
-  if (!IS_MONOLITE_ARCH && argv.mode === 'development') {
-    app.use(cors({ origin: CLIENT_HOST }))
-  }
-
   if (IS_MONOLITE_ARCH) {
     app.use(express.static(process.cwd() + '/public'))
+  } else {
+    app.use(cors({ origin: CLIENT_HOST }))
   }
 
   app.use(cookieParser())
