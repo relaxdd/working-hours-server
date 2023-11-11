@@ -3,10 +3,14 @@ import path from 'path'
 import crypto from 'crypto'
 import { celebrate } from 'celebrate'
 import { tableIdSchema } from './import.scheme'
+import { existsSync } from 'fs'
+import { mkdir } from 'fs/promises'
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads'))
+  destination: async (req, file, cb) => {
+    const folder = path.join(process.cwd(), 'uploads')
+    if (!existsSync(folder)) await mkdir(folder)
+    cb(null, folder)
   },
   filename: (req, file, cb) => {
     crypto.randomBytes(16, function (err, raw) {
