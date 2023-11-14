@@ -416,8 +416,6 @@ class TableModel {
         }
       }
 
-      console.log('set count')
-
       const { count } = await pgdb.one<{ count: number }>(
         'SELECT COUNT(*) FROM "table_rows" WHERE "table_id" = $1',
         [tableId]

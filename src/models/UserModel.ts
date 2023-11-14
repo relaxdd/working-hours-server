@@ -8,14 +8,13 @@ class UserModel {
     await pgdb.none(query, [login, email, password])
   }
 
-  // TODO: Проверить результат
   public static async getCountByLogin(login: string): Promise<number> {
-    const query = 'SELECT COUNT(*) FROM "users" WHERE "login" = ?'
-    return await pgdb.one<number>(query, login)
+    const query = 'SELECT COUNT(*) FROM "users" WHERE "login" = $1'
+    return (await pgdb.one<{ count: number }>(query, [login])).count
   }
 
   public static async updatePassword(userId: number, hashPassword: string) {
-    const query = 'UPDATE users SET "password" = $1 WHERE "id" = $2'
+    const query = 'UPDATE "users" SET "password" = $1 WHERE "id" = $2'
     await pgdb.none(query, [hashPassword, userId])
   }
 

@@ -11,6 +11,7 @@ CREATE TABLE "tables" (
   "user_id" integer NOT NULL,
   "name" varchar(50) UNIQUE NOT NULL,
   "count" integer NOT NULL DEFAULT 0,
+  "slug" varchar(50) NOT NULL DEFAULT '',
   "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp),
   "password" varchar(255) DEFAULT null
 );
