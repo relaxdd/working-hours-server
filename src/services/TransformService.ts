@@ -1,11 +1,11 @@
-import { defOptions } from "../data"
+import { defOptions } from '../data'
 import type {
   IEntity,
-  IOptions,
-  ITableRow,
   ImportEntity,
   ImportOptions,
   ImportTableRows,
+  IOptions,
+  ITableRow,
   MaybeNewOrUpdatedEntity,
   MaybeNewOrUpdatedTableRow,
   MaybeNewOrUpdatedTransformTableRow,
@@ -14,7 +14,7 @@ import type {
   TransformImportTableRow,
   TransformOptions,
   TransformTableRow,
-} from "../@types"
+} from '../@types'
 
 class TransformService {
   public static transformEntities(entities: IEntity[]): TransformEntity[] {
@@ -25,20 +25,20 @@ class TransformService {
     }))
   }
 
-  public static transformOptions(options: IOptions | null, entities: IEntity[]): TransformOptions {
-    if (!options) {
-      defOptions.listOfTech = this.transformEntities(entities)
+  public static transformOptions(data: { options: IOptions | null, entities: IEntity[] }): TransformOptions {
+    if (!data.options) {
+      defOptions.listOfTech = this.transformEntities(data.entities)
       return defOptions
     }
 
     return {
-      id: options.id,
-      tableId: options.table_id,
-      dtRoundStep: options.round_step,
-      hiddenCols: options.hidden_cols,
-      usingKeys: options.using_keys,
-      typeOfAdding: options.type_adding,
-      listOfTech: this.transformEntities(entities),
+      id: data.options.id,
+      tableId: data.options.table_id,
+      dtRoundStep: data.options.round_step,
+      hiddenCols: data.options.hidden_cols,
+      usingKeys: data.options.using_keys,
+      typeOfAdding: data.options.type_adding,
+      listOfTech: this.transformEntities(data.entities),
     }
   }
 

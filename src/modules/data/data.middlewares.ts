@@ -3,13 +3,13 @@ import {
   deleteEntitySchema,
   optionsSchema,
   compareSchema,
-  validateIdSchema,
+  validateBoundSchema,
   passwordSchema,
   updateTableRowsSchema,
 } from "./data.scheme"
 
-export const validateIdQuery = celebrate({
-  query: validateIdSchema,
+export const validateBoundQuery = celebrate({
+  query: validateBoundSchema,
 })
 
 export const validateCompare = celebrate({

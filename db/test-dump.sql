@@ -3,7 +3,7 @@ CREATE TABLE "users" (
   "login" varchar(50) UNIQUE NOT NULL,
   "email" varchar(191) NOT NULL,
   "password" varchar(255) NOT NULL,
-  "created" timestamp NOT NULL DEFAULT (current_timestamp)
+  "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp)
 );
 
 CREATE TABLE "tables" (
@@ -11,7 +11,7 @@ CREATE TABLE "tables" (
   "user_id" integer NOT NULL,
   "name" varchar(50) UNIQUE NOT NULL,
   "count" integer NOT NULL DEFAULT 0,
-  "created" timestamp NOT NULL DEFAULT (current_timestamp),
+  "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp),
   "password" varchar(255) DEFAULT null
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE "options" (
   "type_adding" varchar(10) NOT NULL DEFAULT 'fast',
   "round_step" integer NOT NULL DEFAULT 10,
   "hidden_cols" json NOT NULL DEFAULT '{"number":false,"entity":false,"description":false}',
-  "using_keys" json NOT NULL DEFAULT '{"delete":"Delete","up":"ArrowUp","down":"ArrowDown"}'
+  "using_keys" json NOT NULL DEFAULT '{"delete":"Delete","up":"ArrowUp","down":"ArrowDown","plus":"ArrowRight","minus":"ArrowLeft"}'
 );
 
 CREATE TABLE "entities" (
@@ -37,8 +37,8 @@ CREATE TABLE "table_rows" (
   "id" SERIAL PRIMARY KEY NOT NULL,
   "table_id" integer NOT NULL,
   "entity_id" integer NOT NULL,
-  "start" timestamp NOT NULL,
-  "finish" timestamp NOT NULL,
+  "start" timestamp with time zone NOT NULL,
+  "finish" timestamp with time zone NOT NULL,
   "is_paid" boolean NOT NULL DEFAULT false,
   "title" varchar(191) NOT NULL DEFAULT '',
   "description" varchar(255) NOT NULL DEFAULT '',

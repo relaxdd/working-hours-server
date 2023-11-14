@@ -13,8 +13,8 @@ const idSchema = Joi.number().integer().positive()
 export const tableRowsImportSchema = Joi.array<TransformImportTableRow[]>().items(
   Joi.object<TransformImportTableRow, true>({
     entityId: idSchema.allow(null).required(),
-    start: Joi.date().format(HTML5_FMT.DATETIME_LOCAL_MS).required(),
-    finish: Joi.date().format(HTML5_FMT.DATETIME_LOCAL_MS).required(),
+    start: Joi.date().format('YYYY-MM-DDTHH:mm:ss.SSSZ').required(),
+    finish: Joi.date().format('YYYY-MM-DDTHH:mm:ss.SSSZ').required(),
     isPaid: Joi.boolean().required(),
     title: Joi.string().allow('').required(),
     description: Joi.string().allow('').required(),
@@ -24,12 +24,8 @@ export const tableRowsImportSchema = Joi.array<TransformImportTableRow[]>().item
 
 export const entityImportSchema = Joi.object<ImportEntity, true>({
   id: idSchema.optional(),
-  key: Joi.string()
-    .pattern(/^[a-z0-9_-]+$/i)
-    .required(),
-  text: Joi.string()
-    .pattern(/^[a-zа-я0-9_ ]+$/i)
-    .required(),
+  key: Joi.string().pattern(/^[a-z0-9_-]+$/i).required(),
+  text: Joi.string().pattern(/^[a-zа-я0-9_ ]+$/i).required(),
   rate: Joi.number().integer().positive().required(),
 })
 

@@ -1,10 +1,9 @@
-import type { Extension, Root } from 'joi'
+import type { CustomHelpers, Extension, Root } from 'joi'
 import BaseJoi from 'joi'
 import JoiDate from '@joi/date'
-import { HTML5_FMT } from 'moment'
 import type { MaybeNewOrUpdatedTransformTableRow, TransformEntity, TransformOptions, } from '../../@types'
 
-export type ValidateId = { tableId: number }
+export type ValidateBound = { tableId: number, month: string, year: string }
 export type DeleteEntities = { tableId: number; remove: number[] }
 export type ComparePassword = { password: string; hash: string }
 export type UpdatePassword = { tableId: number; password: string | null }
@@ -18,8 +17,15 @@ export type UpdateTableRows = {
 const Joi = BaseJoi.extend(JoiDate as unknown as Extension) as Root
 const idSchema = Joi.number().integer().positive().required()
 
-export const validateIdSchema = Joi.object<ValidateId, true>({
+function validateDate(year: string, helper: CustomHelpers) {
+  const isValid = +year <= +(new Date().toLocaleString('ru-RU', { year: 'numeric' }))
+  return isValid ? year : helper.message({ 'custom': 'Нельзя получить данные передав будущий год' })
+}
+
+export const validateBoundSchema = Joi.object<ValidateBound, true>({
   tableId: Joi.number().integer().positive().required(),
+  month: Joi.string().pattern(/^(0[1-9]|1[0-2])$/).trim().required(),
+  year: Joi.string().pattern(/^(\d{4})$/).custom(validateDate).required()
 })
 
 export const compareSchema = Joi.object<ComparePassword, true>({
@@ -45,12 +51,8 @@ export const entitySchema = Joi.object<TransformEntity, true>({
   id: idSchema,
   tableId: idSchema,
   optionId: idSchema,
-  key: Joi.string()
-    .pattern(/^[a-z0-9_-]+$/i)
-    .required(),
-  text: Joi.string()
-    .pattern(/^[a-zа-я0-9_ ]+$/i)
-    .required(),
+  key: Joi.string().pattern(/^[a-z0-9_-]+$/i).required(),
+  text: Joi.string().pattern(/^[a-zа-я0-9_ ]+$/i).required(),
   rate: Joi.number().integer().positive().required(),
   isCreated: Joi.boolean().default(false).optional(),
   isUpdated: Joi.boolean().default(false).optional(),
@@ -72,10 +74,10 @@ export const tableRowsSchema = Joi.array<MaybeNewOrUpdatedTransformTableRow[]>()
     tableId: idSchema,
     entityId: idSchema.allow(null),
     start: Joi.date()
-      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + 'Z'])
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ')
       .required(),
     finish: Joi.date()
-      .format([HTML5_FMT.DATETIME_LOCAL_MS, HTML5_FMT.DATETIME_LOCAL_MS + 'Z'])
+      .format('YYYY-MM-DDTHH:mm:ss.SSSZ')
       .required(),
     isPaid: Joi.boolean().required(),
     title: Joi.string().allow('').required(),

@@ -3,7 +3,7 @@ import checkAuth from "../../middlewares/checkAuth"
 import dataController from "./data.controller"
 import {
   validateDeleteEntity,
-  validateIdQuery,
+  validateBoundQuery,
   validateCompare,
   validateUpdateOptions,
   validatePassword,
@@ -14,7 +14,7 @@ const dataRouter = Router()
 
 dataRouter.use(checkAuth)
 
-dataRouter.get("/all", validateIdQuery, dataController.getAllData)
+dataRouter.get("/all", validateBoundQuery, dataController.getAllData)
 dataRouter.post("/compare", validateCompare, dataController.comparePassword)
 dataRouter.post("/password", validatePassword, dataController.updatePassword)
 dataRouter.patch("/options", validateUpdateOptions, dataController.updateOptions)

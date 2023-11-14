@@ -1,28 +1,25 @@
-import { pgdb } from "../index"
+import { pgdb } from '../index'
 import {
+  CanBeUpdatedKeysTransformTableRows,
+  CanBeUpdatedKeyTableRows,
   IEntity,
-  MaybeNewOrUpdatedEntity,
+  ImportEntity,
+  ImportOptions,
+  ImportTableRows,
   IOptions,
   ITable,
   ITableRow,
-  ImportTableRows,
-  ImportOptions,
-  ImportEntity,
+  MaybeNewOrUpdatedEntity,
   MaybeNewOrUpdatedTableRow,
-  CanBeUpdatedKeysTransformTableRows,
-  CanBeUpdatedKeyTableRows,
   TransformTableRow,
-} from "../@types"
-import ApiError from "../utils/errors/ApiError"
-import { DeleteEntities, UpdatePassword, UpdateTableRows } from "../modules/data/data.scheme"
-import { as } from "pg-promise"
-
-const pgp = require("pg-promise")
-const helpers = pgp.helpers
+} from '../@types'
+import ApiError from '../utils/errors/ApiError'
+import { DeleteEntities, UpdatePassword, UpdateTableRows, ValidateBound } from '../modules/data/data.scheme'
+import { as } from 'pg-promise'
 
 type TImportTableRowsWithOptionsPayload = {
   tableId: number
-  mergeEntities: "on" | undefined
+  mergeEntities: 'on' | undefined
   tableData: ImportTableRows[]
   optionsData: {
     options: ImportOptions
@@ -31,71 +28,119 @@ type TImportTableRowsWithOptionsPayload = {
 }
 
 class TableModel {
-  public static async loadAllBound(tableId: number) {
+  private static formatDateQuery(column: string) {
+    return `TO_CHAR(table_rows.${column} AT time zone 'Europe/Moscow', 'YYYY-MM-DD"T"HH24:MI:SS.MS"+03:00"') as "${column}"`
+  }
+
+  public static async loadAllBound({ tableId, month, year }: ValidateBound) {
+
     return await pgdb.task(async (t) => {
       const entities = await t.manyOrNone<IEntity>(
         'SELECT * FROM "entities" WHERE table_id = $1',
-        tableId
+        [tableId]
       )
 
       const options = await t.oneOrNone<IOptions>(
         'SELECT * FROM "options" WHERE table_id = $1 LIMIT 1',
-        tableId
+        [tableId]
       )
 
       const rows = await t.manyOrNone<ITableRow>(
-        'SELECT * FROM "table_rows" WHERE table_id = $1',
-        tableId
+        `SELECT *
+         FROM public.table_rows,
+              ${this.formatDateQuery('start')},
+              ${this.formatDateQuery('finish')}
+         WHERE table_id = $1
+           AND TO_CHAR(table_rows.start, 'MM') = $2
+           AND TO_CHAR(table_rows.start, 'YYYY') = $3`,
+        [tableId, month, year]
       )
 
-      return { entities, options, rows }
+      const { years } = await pgdb.one<{ years: string[] }>(
+        `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY')) AS "years"
+         FROM "table_rows"`
+      )
+
+
+      return { entities, options, rows, years }
     })
   }
 
   public static async findAll(userId: number): Promise<ITable[]> {
-    return await pgdb.manyOrNone<ITable>(`SELECT * FROM "tables" WHERE "user_id" = $1`, [userId])
+    return await pgdb.manyOrNone<ITable>(
+      `SELECT *
+       FROM "tables"
+       WHERE "user_id" = $1`,
+      [userId]
+    )
   }
 
   public static async findOne(userId: number, tableId: number) {
     return await pgdb.oneOrNone<ITable>(
-      `SELECT *, "user_id" as "userId" 
-      FROM "tables" WHERE id = $1 AND "user_id" = $2`,
+      `SELECT *, "user_id" as "userId"
+       FROM "tables"
+       WHERE id = $1
+         AND "user_id" = $2`,
       [tableId, userId]
     )
   }
 
   public static async setCount(userId: number, tableId: number, count: number) {
     await pgdb.none(
-      `UPDATE "tables" 
-      SET "count" = $1 WHERE "id" = $2 AND "user_id" = $3`,
+      `UPDATE "tables"
+       SET "count" = $1
+       WHERE "id" = $2
+         AND "user_id" = $3`,
       [count, tableId, userId]
     )
   }
 
   public static async setName(userId: number, tableId: number, name: string) {
     await pgdb.none(
-      `UPDATE "tables" SET "name" = $1 
-      WHERE "id" = $2 AND "user_id" = $3`,
+      `UPDATE "tables"
+       SET "name" = $1
+       WHERE "id" = $2
+         AND "user_id" = $3`,
       [name, tableId, userId]
     )
   }
 
   public static async deleteOne(userId: number, tableId: number) {
     const resId = await pgdb.oneOrNone<{ userId: number }>(
-      `SELECT "user_id" as "userId" 
-      FROM "tables" WHERE "id" = $1`,
+      `SELECT "user_id" as "userId"
+       FROM "tables"
+       WHERE "id" = $1`,
       [tableId]
     )
 
-    if (!resId) throw new ApiError("Таблицы с таким ID не существует", 400)
+    if (!resId) throw new ApiError('Таблицы с таким ID не существует', 400)
 
-    if (resId.userId !== userId) throw new ApiError("Вам не разрешено удалять эту таблицу", 403)
+    if (resId.userId !== userId) throw new ApiError('Вам не разрешено удалять эту таблицу', 403)
 
     await pgdb.task(async (t) => {
-      await t.none(`DELETE FROM "table_rows" WHERE "table_id" = $1`, [tableId])
-      await t.none(`DELETE FROM "entities" WHERE "table_id" = $1`, [tableId])
-      await t.none(`DELETE FROM "options" WHERE "table_id" = $1`, [tableId])
-      await t.none(`DELETE FROM "tables" WHERE "id" = $1`, [tableId])
+      await t.none(
+        `DELETE
+         FROM "table_rows"
+         WHERE "table_id" = $1`, [tableId]
+      )
+
+      await t.none(
+        `DELETE
+         FROM "entities"
+         WHERE "table_id" = $1`, [tableId]
+      )
+
+      await t.none(
+        `DELETE
+         FROM "options"
+         WHERE "table_id" = $1`, [tableId]
+      )
+
+      await t.none(
+        `DELETE
+         FROM "tables"
+         WHERE "id" = $1`, [tableId]
+      )
     })
   }
 
@@ -107,22 +152,29 @@ class TableModel {
    * @return Идентификатор созданной таблицы
    */
   public static async createTable(userId: number, name: string): Promise<ITable> {
-    const user = await pgdb.oneOrNone(`SELECT * FROM "users" WHERE "id" = $1`, userId)
-    if (!user) throw new ApiError("Пользователя с таким ID не существует", 403)
+    const user = await pgdb.oneOrNone(
+      `SELECT *
+       FROM "users"
+       WHERE "id" = $1`,
+      [userId]
+    )
+
+    if (!user) throw new ApiError('Пользователя с таким ID не существует', 403)
 
     const find = await pgdb.oneOrNone<ITable>('SELECT * FROM tables WHERE "name" = $1', name)
-    if (find) throw new ApiError("Таблица с таким именем уже существует", 400)
+    if (find) throw new ApiError('Таблица с таким именем уже существует', 400)
 
     return await pgdb.task(async (t) => {
       const query1 = 'INSERT INTO "tables" ("name", "user_id") VALUES ($1, $2) RETURNING *'
       const table = await t.oneOrNone<ITable>(query1, [name, userId])
-      if (!table) throw new ApiError("Не удалось создать таблицу", 500)
+      if (!table) throw new ApiError('Не удалось создать таблицу', 500)
 
       const query2 = 'INSERT INTO "options" ("table_id") VALUES ($1) RETURNING "id"'
       const option = await t.oneOrNone<{ id: number }>(query2, table.id)
-      if (!option) throw new ApiError("Не удалось создать опции таблицы", 500)
+      if (!option) throw new ApiError('Не удалось создать опции таблицы', 500)
 
-      const query3 = `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id") VALUES ('base', 250, 'Базовый', $1, $2)`
+      const query3 = `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
+                      VALUES ('base', 250, 'Базовый', $1, $2)`
       await t.none(query3, [option.id, table.id])
 
       return table
@@ -157,18 +209,23 @@ class TableModel {
     using_keys,
     ...ids
   }: IOptions) {
-    const query = `UPDATE "options" SET "type_adding" = $1, "round_step" = $2, "hidden_cols" = $3, "using_keys" = $4 WHERE "id" = $5 AND "table_id" = $6`
-
-    const values = [
-      type_adding,
-      round_step,
-      JSON.stringify(hidden_cols),
-      JSON.stringify(using_keys),
-      ids.id,
-      ids.table_id,
-    ]
-
-    await pgdb.none(query, values)
+    await pgdb.none(
+      `UPDATE "options"
+       SET "type_adding" = $1,
+           "round_step"  = $2,
+           "hidden_cols" = $3,
+           "using_keys"  = $4
+       WHERE "id" = $5
+         AND "table_id" = $6`,
+      [
+        type_adding,
+        round_step,
+        JSON.stringify(hidden_cols),
+        JSON.stringify(using_keys),
+        ids.id,
+        ids.table_id,
+      ]
+    )
   }
 
   // TODO: Переписать на слоты "WHERE 'id' IN (...)"
@@ -186,25 +243,29 @@ class TableModel {
     await pgdb.none(query, [password, tableId])
   }
 
-  public static async importTableRows(data: ImportTableRows[], tableId: number) {
+  public static async importTableRows(tableRows: ImportTableRows[], tableId: number) {
     await pgdb.task(async (t) => {
-      for (const row of data) {
-        const query = `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
-         VALUES ($1, $2, $3, $4, $5, $6, $7);`
-
-        await t.none(query, [
-          row.start,
-          row.finish,
-          row.is_paid,
-          row.title,
-          row.description,
-          row.entity_id,
-          tableId,
-        ])
+      for (const row of tableRows) {
+        await t.none(
+          `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
+           VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+          [
+            row.start,
+            row.finish,
+            row.is_paid,
+            row.title,
+            row.description,
+            null,
+            tableId,
+          ])
       }
 
-      const query = 'UPDATE "tables" SET "count" = $1 WHERE "id" = $2'
-      await t.none(query, [data.length, tableId])
+      await t.none(
+        `UPDATE "tables"
+         SET "count" = $1
+         WHERE "id" = $2`,
+        [tableRows.length, tableId]
+      )
     })
   }
 
@@ -219,32 +280,43 @@ class TableModel {
         await t.none('DELETE FROM "entities" WHERE "table_id" = $1', [tableId])
       }
 
-      await t.none(`DELETE FROM "table_rows" WHERE "table_id" = $1`, [tableId])
+      await t.none(
+        `DELETE
+         FROM "table_rows"
+         WHERE "table_id" = $1`,
+        [tableId]
+      )
 
-      const query = `UPDATE "options" SET "type_adding" = $1, "round_step" = $2, "hidden_cols" = $3, "using_keys" = $4 
-      WHERE "table_id" = $5 RETURNING "id" AS "optionsId"`
+      const { optionsId } = await t.one<{ optionsId: number }>(
+        `UPDATE "options"
+         SET "type_adding" = $1,
+             "round_step"  = $2,
+             "hidden_cols" = $3,
+             "using_keys"  = $4
+         WHERE "table_id" = $5 RETURNING "id" AS "optionsId"`,
+        [
+          options.type_adding,
+          options.round_step,
+          JSON.stringify(options.hidden_cols),
+          JSON.stringify(options.using_keys),
+          tableId,
+        ]
+      )
 
-      const { optionsId } = await t.one<{ optionsId: number }>(query, [
-        options.type_adding,
-        options.round_step,
-        JSON.stringify(options.hidden_cols),
-        JSON.stringify(options.using_keys),
-        tableId,
-      ])
-
-      const entityIdAssoc: Record<"prev" | "next", number>[] = []
+      const entityIdAssoc: Record<'prev' | 'next', number>[] = []
 
       for (const entity of entities) {
-        const query = `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id") 
-          VALUES ($1, $2, $3, $4, $5) RETURNING "id" AS "entityId"`
-
-        const { entityId } = await t.one<{ entityId: number }>(query, [
-          entity.key,
-          entity.rate,
-          entity.text,
-          optionsId,
-          tableId,
-        ])
+        const { entityId } = await t.one<{ entityId: number }>(
+          `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
+               VALUES ($1, $2, $3, $4, $5) RETURNING "id" AS "entityId"`,
+          [
+            entity.key,
+            entity.rate,
+            entity.text,
+            optionsId,
+            tableId,
+          ]
+        )
 
         if (entity?.id !== undefined) {
           entityIdAssoc.push({ prev: entity.id, next: entityId })
@@ -259,21 +331,25 @@ class TableModel {
             })?.next || null
         }
 
-        const query = `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
-        VALUES ($1, $2, $3, $4, $5, $6, $7);`
-
-        await t.none(query, [
-          row.start,
-          row.finish,
-          row.is_paid,
-          row.title,
-          row.description,
-          row.entity_id,
-          tableId,
-        ])
+        await t.none(
+          `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
+           VALUES ($1, $2, $3, $4, $5, $6, $7);`,
+          [
+            row.start,
+            row.finish,
+            row.is_paid,
+            row.title,
+            row.description,
+            row.entity_id,
+            tableId,
+          ]
+        )
       }
 
-      await t.none('UPDATE "tables" SET "count" = $1 WHERE "id" = $2', [tableData.length, tableId])
+      await t.none(
+        'UPDATE "tables" SET "count" = $1 WHERE "id" = $2',
+        [tableData.length, tableId]
+      )
     })
   }
 
@@ -281,28 +357,34 @@ class TableModel {
     tableId,
     tableRows,
     deleted,
-  }: Omit<UpdateTableRows, "tableRows"> & { tableRows: MaybeNewOrUpdatedTableRow[] }) {
+  }: Omit<UpdateTableRows, 'tableRows'> & { tableRows: MaybeNewOrUpdatedTableRow[] }) {
     await pgdb.task(async (t) => {
       if (deleted.length) {
-        const query = `DELETE FROM "table_rows" WHERE "table_id" = $1 AND "id" IN ($2:csv)`
-        await t.none(query, [tableId, deleted])
+
+        await t.none(
+          `DELETE
+           FROM "table_rows"
+           WHERE "table_id" = $1
+             AND "id" IN ($2:csv)`,
+          [tableId, deleted]
+        )
       }
 
       for (const row of tableRows) {
         if (row?.isCreated) {
           const keys = [
-            "start",
-            "finish",
-            "is_paid",
-            "title",
-            "description",
-            "order",
-            "entity_id",
-            "table_id",
+            'start',
+            'finish',
+            'is_paid',
+            'title',
+            'description',
+            'order',
+            'entity_id',
+            'table_id',
           ] satisfies (keyof ITableRow)[]
 
-          const fields = keys.map((k) => `"${k}"`).join(", ")
-          const values = keys.map((k) => `\${${k}}`).join(", ")
+          const fields = keys.map((k) => `"${k}"`).join(', ')
+          const values = keys.map((k) => `\${${k}}`).join(', ')
 
           const data = keys.reduce((obj, k) => {
             obj[k] = row[k]
@@ -325,20 +407,34 @@ class TableModel {
           const fields = as.format(query, data)
 
           await t.none(
-            `UPDATE "table_rows" SET \${fields:raw} 
-            WHERE "id" = \${id} AND "table_id" = \${tableId}`,
+            `UPDATE "table_rows"
+             SET \${fields:raw}
+             WHERE "id" = \${id}
+               AND "table_id" = \${tableId}`,
             { fields, id: row.id, tableId }
           )
         }
       }
+
+      console.log('set count')
+
+      const { count } = await pgdb.one<{ count: number }>(
+        'SELECT COUNT(*) FROM "table_rows" WHERE "table_id" = $1',
+        [tableId]
+      )
+
+      await t.none(
+        'UPDATE "tables" SET "count" = $1 WHERE "id" = $2',
+        [count, tableId]
+      )
     })
   }
 
   private static replaceTransformTableRowsKeys(keys: CanBeUpdatedKeysTransformTableRows) {
-    type Test = keyof Pick<TransformTableRow, "entityId" | "isPaid">
+    type Test = keyof Pick<TransformTableRow, 'entityId' | 'isPaid'>
     const map: Record<Test, CanBeUpdatedKeyTableRows> = {
-      entityId: "entity_id",
-      isPaid: "is_paid",
+      entityId: 'entity_id',
+      isPaid: 'is_paid',
     }
 
     return keys.map((front) => map?.[front as Test] || front)
@@ -354,7 +450,7 @@ class TableModel {
       { slots: [], data: {} }
     )
 
-    return { query: slots.join(", "), data }
+    return { query: slots.join(', '), data }
   }
 }
 
