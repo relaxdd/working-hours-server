@@ -33,7 +33,8 @@ class TableModel {
   }
 
   public static async loadAllBound({ tableId, month, year }: ValidateBound) {
-
+    // get all uniq dates YYYY-MM like object
+    // SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "dates" FROM "table_rows"
     return await pgdb.task(async (t) => {
       const entities = await t.manyOrNone<IEntity>(
         'SELECT * FROM "entities" WHERE table_id = $1',
@@ -56,11 +57,23 @@ class TableModel {
         [tableId, month, year]
       )
 
-      const { years } = await pgdb.one<{ years: string[] }>(
-        `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY')) AS "years"
-         FROM "table_rows"`
-      )
+      // const { years } = await t.one<{ years: string[] }>(
+      //   `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY')) AS "years"
+      //    FROM "table_rows"`
+      // )
 
+      const years = await t.oneOrNone<{ min: string, max: string }>(
+        `SELECT (SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "min"
+                 FROM public.table_rows
+                 WHERE table_rows.table_id = $1
+                 ORDER BY "min" ASC
+                 LIMIT 1),
+                (SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "max"
+                 FROM public.table_rows
+                 WHERE table_rows.table_id = $1
+                 ORDER BY "max" DESC
+                 LIMIT 1)`, [tableId]
+      )
 
       return { entities, options, rows, years }
     })
