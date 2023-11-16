@@ -5,11 +5,15 @@ import {
   compareSchema,
   validateBoundSchema,
   passwordSchema,
-  updateTableRowsSchema,
-} from "./data.scheme"
+  updateTableRowsSchema, validateIdSchema,
+} from './data.scheme'
 
 export const validateBoundQuery = celebrate({
   query: validateBoundSchema,
+})
+
+export const validateIdQuery = celebrate({
+  query: validateIdSchema
 })
 
 export const validateCompare = celebrate({

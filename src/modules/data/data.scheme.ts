@@ -3,6 +3,7 @@ import BaseJoi from 'joi'
 import JoiDate from '@joi/date'
 import type { MaybeNewOrUpdatedTransformTableRow, TransformEntity, TransformOptions, } from '../../@types'
 
+export type ValidateId = { tableId: number }
 export type ValidateBound = { tableId: number, month: string, year: string }
 export type DeleteEntities = { tableId: number; remove: number[] }
 export type ComparePassword = { password: string; hash: string }
@@ -23,9 +24,13 @@ function validateDate(year: string, helper: CustomHelpers) {
 }
 
 export const validateBoundSchema = Joi.object<ValidateBound, true>({
-  tableId: Joi.number().integer().positive().required(),
+  tableId: idSchema,
   month: Joi.string().pattern(/^(0[1-9]|1[0-2])$/).trim().required(),
   year: Joi.string().pattern(/^(\d{4})$/).custom(validateDate).required()
+})
+
+export const validateIdSchema = Joi.object<ValidateId, true>({
+  tableId: idSchema,
 })
 
 export const compareSchema = Joi.object<ComparePassword, true>({

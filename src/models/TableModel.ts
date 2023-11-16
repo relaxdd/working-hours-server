@@ -28,54 +28,66 @@ type TImportTableRowsWithOptionsPayload = {
 }
 
 class TableModel {
-  private static formatDateQuery(column: string) {
-    return `TO_CHAR(table_rows.${column} AT time zone 'Europe/Moscow', 'YYYY-MM-DD"T"HH24:MI:SS.MS"+03:00"') as "${column}"`
-  }
+  public static async loadTableMeta(tableId: number) {
+    const formatYearsQuery = (column: string, order: 'ASC' | 'DESC') => {
+      return `SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "${column}"
+              FROM public.table_rows
+              WHERE table_rows.table_id = $1
+              ORDER BY "${column}" ${order}
+              LIMIT 1`
+    }
 
-  public static async loadAllBound({ tableId, month, year }: ValidateBound) {
-    // get all uniq dates YYYY-MM like object
-    // SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "dates" FROM "table_rows"
     return await pgdb.task(async (t) => {
-      const entities = await t.manyOrNone<IEntity>(
+      const entities = await pgdb.manyOrNone<IEntity>(
         'SELECT * FROM "entities" WHERE table_id = $1',
         [tableId]
       )
 
-      const options = await t.oneOrNone<IOptions>(
+      const options = await pgdb.oneOrNone<IOptions>(
         'SELECT * FROM "options" WHERE table_id = $1 LIMIT 1',
         [tableId]
       )
 
-      const rows = await t.manyOrNone<ITableRow>(
-        `SELECT *
-         FROM public.table_rows,
-              ${this.formatDateQuery('start')},
-              ${this.formatDateQuery('finish')}
-         WHERE table_id = $1
-           AND TO_CHAR(table_rows.start, 'MM') = $2
-           AND TO_CHAR(table_rows.start, 'YYYY') = $3`,
-        [tableId, month, year]
+      const years = await t.oneOrNone<{ min: string, max: string }>(
+        `SELECT (${formatYearsQuery('min', 'ASC')}), (${formatYearsQuery('max', 'DESC')})`,
+        [tableId]
       )
+
+      return { entities, options, years }
+    })
+  }
+
+  public static async loadTableRows({ tableId, month, year }: ValidateBound) {
+    const formatDateQuery = (column: string) => {
+      return `TO_CHAR(table_rows.${column} AT time zone 'Europe/Moscow', 'YYYY-MM-DD"T"HH24:MI:SS.MS"+03:00"') as "${column}"`
+    }
+
+    return await pgdb.manyOrNone<ITableRow>(
+      `SELECT *
+       FROM public.table_rows,
+            ${formatDateQuery('start')},
+            ${formatDateQuery('finish')}
+       WHERE table_id = $1
+         AND TO_CHAR(table_rows.start, 'MM') = $2
+         AND TO_CHAR(table_rows.start, 'YYYY') = $3`,
+      [tableId, month, year]
+    )
+  }
+
+  public static async loadAllBound(obj: ValidateBound) {
+    // get all uniq dates YYYY-MM like object
+    // SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "dates" FROM "table_rows"
+
+    return await pgdb.task(async (t) => {
+      const tableMeta = await this.loadTableMeta(obj.tableId)
+      const tableRows = await this.loadTableRows(obj)
 
       // const { years } = await t.one<{ years: string[] }>(
       //   `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY')) AS "years"
       //    FROM "table_rows"`
       // )
 
-      const years = await t.oneOrNone<{ min: string, max: string }>(
-        `SELECT (SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "min"
-                 FROM public.table_rows
-                 WHERE table_rows.table_id = $1
-                 ORDER BY "min" ASC
-                 LIMIT 1),
-                (SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "max"
-                 FROM public.table_rows
-                 WHERE table_rows.table_id = $1
-                 ORDER BY "max" DESC
-                 LIMIT 1)`, [tableId]
-      )
-
-      return { entities, options, rows, years }
+      return { ...tableMeta, rows: tableRows }
     })
   }
 

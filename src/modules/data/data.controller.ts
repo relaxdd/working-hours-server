@@ -1,23 +1,64 @@
 import { NextFunction, Request, Response } from 'express'
 import bcryptjs from 'bcryptjs'
 import TableModel from '../../models/TableModel'
-import { ComparePassword, DeleteEntities, UpdatePassword, UpdateTableRows, ValidateBound } from './data.scheme'
+import {
+  ComparePassword,
+  DeleteEntities,
+  UpdatePassword,
+  UpdateTableRows,
+  ValidateBound,
+  ValidateId
+} from './data.scheme'
 import TransformService from '../../services/TransformService'
 import type { TransformOptions } from '../../@types'
 
 class DataController {
+  // @Get
   public async getAllData(
     req: Request<any, any, any, Partial<ValidateBound>>,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const { rows = [], years, ...data } = await TableModel.loadAllBound(req.query as ValidateBound)
+      const { rows, years, ...data } = await TableModel.loadAllBound(req.query as ValidateBound)
 
       const tOptions = TransformService.transformOptions(data)
       const tTableRows = TransformService.transformTableRows(rows)
 
       return res.json({ rows: tTableRows, options: tOptions, years })
+    } catch (err) {
+      return next(err)
+    }
+  }
+
+  // @Get
+  public async getTableRows(
+    req: Request<any, any, any, Partial<ValidateBound>>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const tableRows = await TableModel.loadTableRows(req.query as ValidateBound)
+      const tTableRows = TransformService.transformTableRows(tableRows)
+
+      return res.json(tTableRows)
+    } catch (err) {
+      return next(err)
+    }
+  }
+
+  // @Get
+  public async getOptions(
+    req: Request<any, any, any, Partial<ValidateId>>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { tableId } = req.query
+      const { years, ...data } = await TableModel.loadTableMeta(tableId!)
+      const tOptions = TransformService.transformOptions(data)
+
+      return res.json({ options: tOptions, years })
     } catch (err) {
       return next(err)
     }
