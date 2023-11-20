@@ -1,16 +1,16 @@
-import { NextFunction, Request, Response } from 'express'
-import bcryptjs from 'bcryptjs'
-import TableModel from '../../models/TableModel'
+import { NextFunction, Request, Response } from "express"
+import bcryptjs from "bcryptjs"
+import TableModel from "../../models/TableModel"
 import {
   ComparePassword,
   DeleteEntities,
   UpdatePassword,
   UpdateTableRows,
   ValidateBound,
-  ValidateId
-} from './data.scheme'
-import TransformService from '../../services/TransformService'
-import type { TransformOptions } from '../../@types'
+  ValidateId,
+} from "./data.scheme"
+import TransformService from "../../services/TransformService"
+import type { TransformOptions } from "../../@types"
 
 class DataController {
   // @Get
@@ -55,10 +55,27 @@ class DataController {
   ) {
     try {
       const { tableId } = req.query
+
       const { years, ...data } = await TableModel.loadTableMeta(tableId!)
       const tOptions = TransformService.transformOptions(data)
 
       return res.json({ options: tOptions, years })
+    } catch (err) {
+      return next(err)
+    }
+  }
+
+  // @Get
+  public async getYears(
+    req: Request<any, any, any, Partial<ValidateId>>,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { tableId } = req.query
+      const years = await TableModel.loadTableYears(tableId!)
+      
+      return res.json(years)
     } catch (err) {
       return next(err)
     }
@@ -96,7 +113,7 @@ class DataController {
       const isEquals = await bcryptjs.compare(password, hash)
 
       if (isEquals) return res.end()
-      else return res.status(403).json({ message: 'Введен не верный пароль от таблицы' })
+      else return res.status(403).json({ message: "Введен не верный пароль от таблицы" })
     } catch (err) {
       return next(err)
     }

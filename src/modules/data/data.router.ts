@@ -19,6 +19,7 @@ dataRouter.use(checkAuth)
 dataRouter.get('/all', validateBoundQuery, dataController.getAllData)
 dataRouter.get('/rows', validateBoundQuery, dataController.getTableRows)
 dataRouter.get('/options', validateIdQuery, dataController.getOptions)
+dataRouter.get('/years', validateIdQuery, dataController.getYears)
 // @POST
 dataRouter.post('/compare', validateCompare, dataController.comparePassword)
 dataRouter.post('/password', validatePassword, dataController.updatePassword)

@@ -1,4 +1,4 @@
-import { pgdb } from '../index'
+import { pgdb } from "../index"
 import {
   CanBeUpdatedKeysTransformTableRows,
   CanBeUpdatedKeyTableRows,
@@ -12,14 +12,19 @@ import {
   MaybeNewOrUpdatedEntity,
   MaybeNewOrUpdatedTableRow,
   TransformTableRow,
-} from '../@types'
-import ApiError from '../utils/errors/ApiError'
-import { DeleteEntities, UpdatePassword, UpdateTableRows, ValidateBound } from '../modules/data/data.scheme'
-import { as } from 'pg-promise'
+} from "../@types"
+import ApiError from "../utils/errors/ApiError"
+import {
+  DeleteEntities,
+  UpdatePassword,
+  UpdateTableRows,
+  ValidateBound,
+} from "../modules/data/data.scheme"
+import { as } from "pg-promise"
 
 type TImportTableRowsWithOptionsPayload = {
   tableId: number
-  mergeEntities: 'on' | undefined
+  mergeEntities: "on" | undefined
   tableData: ImportTableRows[]
   optionsData: {
     options: ImportOptions
@@ -29,7 +34,7 @@ type TImportTableRowsWithOptionsPayload = {
 
 class TableModel {
   public static async loadTableMeta(tableId: number) {
-    const formatYearsQuery = (column: string, order: 'ASC' | 'DESC') => {
+    const formatYearsQuery = (column: string, order: "ASC" | "DESC") => {
       return `SELECT TO_CHAR(table_rows.start, 'YYYY-MM') AS "${column}"
               FROM public.table_rows
               WHERE table_rows.table_id = $1
@@ -48,8 +53,8 @@ class TableModel {
         [tableId]
       )
 
-      const years = await t.oneOrNone<{ min: string, max: string }>(
-        `SELECT (${formatYearsQuery('min', 'ASC')}), (${formatYearsQuery('max', 'DESC')})`,
+      const years = await t.oneOrNone<{ min: string; max: string }>(
+        `SELECT (${formatYearsQuery("min", "ASC")}), (${formatYearsQuery("max", "DESC")})`,
         [tableId]
       )
 
@@ -65,8 +70,8 @@ class TableModel {
     return await pgdb.manyOrNone<ITableRow>(
       `SELECT *
        FROM public.table_rows,
-            ${formatDateQuery('start')},
-            ${formatDateQuery('finish')}
+            ${formatDateQuery("start")},
+            ${formatDateQuery("finish")}
        WHERE table_id = $1
          AND TO_CHAR(table_rows.start, 'MM') = $2
          AND TO_CHAR(table_rows.start, 'YYYY') = $3`,
@@ -74,18 +79,17 @@ class TableModel {
     )
   }
 
-  public static async loadAllBound(obj: ValidateBound) {
-    // get all uniq dates YYYY-MM like object
-    // SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "dates" FROM "table_rows"
+  public static async loadTableYears(tableId: number): Promise<string[]> {
+    return (await pgdb.one<{ years: string[] }>(
+      `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "years"
+      FROM "table_rows" WHERE "table_id" = $1`, [tableId]
+    )).years
+  }
 
+  public static async loadAllBound(obj: ValidateBound) {
     return await pgdb.task(async (t) => {
       const tableMeta = await this.loadTableMeta(obj.tableId)
       const tableRows = await this.loadTableRows(obj)
-
-      // const { years } = await t.one<{ years: string[] }>(
-      //   `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY')) AS "years"
-      //    FROM "table_rows"`
-      // )
 
       return { ...tableMeta, rows: tableRows }
     })
@@ -138,33 +142,37 @@ class TableModel {
       [tableId]
     )
 
-    if (!resId) throw new ApiError('Таблицы с таким ID не существует', 400)
+    if (!resId) throw new ApiError("Таблицы с таким ID не существует", 400)
 
-    if (resId.userId !== userId) throw new ApiError('Вам не разрешено удалять эту таблицу', 403)
+    if (resId.userId !== userId) throw new ApiError("Вам не разрешено удалять эту таблицу", 403)
 
     await pgdb.task(async (t) => {
       await t.none(
         `DELETE
          FROM "table_rows"
-         WHERE "table_id" = $1`, [tableId]
+         WHERE "table_id" = $1`,
+        [tableId]
       )
 
       await t.none(
         `DELETE
          FROM "entities"
-         WHERE "table_id" = $1`, [tableId]
+         WHERE "table_id" = $1`,
+        [tableId]
       )
 
       await t.none(
         `DELETE
          FROM "options"
-         WHERE "table_id" = $1`, [tableId]
+         WHERE "table_id" = $1`,
+        [tableId]
       )
 
       await t.none(
         `DELETE
          FROM "tables"
-         WHERE "id" = $1`, [tableId]
+         WHERE "id" = $1`,
+        [tableId]
       )
     })
   }
@@ -184,19 +192,19 @@ class TableModel {
       [userId]
     )
 
-    if (!user) throw new ApiError('Пользователя с таким ID не существует', 403)
+    if (!user) throw new ApiError("Пользователя с таким ID не существует", 403)
 
     const find = await pgdb.oneOrNone<ITable>('SELECT * FROM tables WHERE "name" = $1', name)
-    if (find) throw new ApiError('Таблица с таким именем уже существует', 400)
+    if (find) throw new ApiError("Таблица с таким именем уже существует", 400)
 
     return await pgdb.task(async (t) => {
       const query1 = 'INSERT INTO "tables" ("name", "user_id") VALUES ($1, $2) RETURNING *'
       const table = await t.oneOrNone<ITable>(query1, [name, userId])
-      if (!table) throw new ApiError('Не удалось создать таблицу', 500)
+      if (!table) throw new ApiError("Не удалось создать таблицу", 500)
 
       const query2 = 'INSERT INTO "options" ("table_id") VALUES ($1) RETURNING "id"'
       const option = await t.oneOrNone<{ id: number }>(query2, table.id)
-      if (!option) throw new ApiError('Не удалось создать опции таблицы', 500)
+      if (!option) throw new ApiError("Не удалось создать опции таблицы", 500)
 
       const query3 = `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
                       VALUES ('base', 250, 'Базовый', $1, $2)`
@@ -274,15 +282,8 @@ class TableModel {
         await t.none(
           `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
            VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-          [
-            row.start,
-            row.finish,
-            row.is_paid,
-            row.title,
-            row.description,
-            null,
-            tableId,
-          ])
+          [row.start, row.finish, row.is_paid, row.title, row.description, null, tableId]
+        )
       }
 
       await t.none(
@@ -328,19 +329,13 @@ class TableModel {
         ]
       )
 
-      const entityIdAssoc: Record<'prev' | 'next', number>[] = []
+      const entityIdAssoc: Record<"prev" | "next", number>[] = []
 
       for (const entity of entities) {
         const { entityId } = await t.one<{ entityId: number }>(
           `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
                VALUES ($1, $2, $3, $4, $5) RETURNING "id" AS "entityId"`,
-          [
-            entity.key,
-            entity.rate,
-            entity.text,
-            optionsId,
-            tableId,
-          ]
+          [entity.key, entity.rate, entity.text, optionsId, tableId]
         )
 
         if (entity?.id !== undefined) {
@@ -359,22 +354,11 @@ class TableModel {
         await t.none(
           `INSERT INTO "table_rows" ("start", "finish", "is_paid", "title", "description", "entity_id", "table_id")
            VALUES ($1, $2, $3, $4, $5, $6, $7);`,
-          [
-            row.start,
-            row.finish,
-            row.is_paid,
-            row.title,
-            row.description,
-            row.entity_id,
-            tableId,
-          ]
+          [row.start, row.finish, row.is_paid, row.title, row.description, row.entity_id, tableId]
         )
       }
 
-      await t.none(
-        'UPDATE "tables" SET "count" = $1 WHERE "id" = $2',
-        [tableData.length, tableId]
-      )
+      await t.none('UPDATE "tables" SET "count" = $1 WHERE "id" = $2', [tableData.length, tableId])
     })
   }
 
@@ -382,10 +366,9 @@ class TableModel {
     tableId,
     tableRows,
     deleted,
-  }: Omit<UpdateTableRows, 'tableRows'> & { tableRows: MaybeNewOrUpdatedTableRow[] }) {
+  }: Omit<UpdateTableRows, "tableRows"> & { tableRows: MaybeNewOrUpdatedTableRow[] }) {
     await pgdb.task(async (t) => {
       if (deleted.length) {
-
         await t.none(
           `DELETE
            FROM "table_rows"
@@ -398,18 +381,18 @@ class TableModel {
       for (const row of tableRows) {
         if (row?.isCreated) {
           const keys = [
-            'start',
-            'finish',
-            'is_paid',
-            'title',
-            'description',
-            'order',
-            'entity_id',
-            'table_id',
+            "start",
+            "finish",
+            "is_paid",
+            "title",
+            "description",
+            "order",
+            "entity_id",
+            "table_id",
           ] satisfies (keyof ITableRow)[]
 
-          const fields = keys.map((k) => `"${k}"`).join(', ')
-          const values = keys.map((k) => `\${${k}}`).join(', ')
+          const fields = keys.map((k) => `"${k}"`).join(", ")
+          const values = keys.map((k) => `\${${k}}`).join(", ")
 
           const data = keys.reduce((obj, k) => {
             obj[k] = row[k]
@@ -420,7 +403,7 @@ class TableModel {
           const format = as.format(dirty, { fields, values })
           const query = as.format(format, data)
 
-          await t.none('INSERT INTO "table_rows" \${query:raw}', { query })
+          await t.none('INSERT INTO "table_rows" ${query:raw}', { query })
         } //
         else if (row?.isUpdated && !row?.isCreated) {
           const updated = row?.updatedKeys || []
@@ -446,18 +429,15 @@ class TableModel {
         [tableId]
       )
 
-      await t.none(
-        'UPDATE "tables" SET "count" = $1 WHERE "id" = $2',
-        [count, tableId]
-      )
+      await t.none('UPDATE "tables" SET "count" = $1 WHERE "id" = $2', [count, tableId])
     })
   }
 
   private static replaceTransformTableRowsKeys(keys: CanBeUpdatedKeysTransformTableRows) {
-    type Test = keyof Pick<TransformTableRow, 'entityId' | 'isPaid'>
+    type Test = keyof Pick<TransformTableRow, "entityId" | "isPaid">
     const map: Record<Test, CanBeUpdatedKeyTableRows> = {
-      entityId: 'entity_id',
-      isPaid: 'is_paid',
+      entityId: "entity_id",
+      isPaid: "is_paid",
     }
 
     return keys.map((front) => map?.[front as Test] || front)
@@ -473,7 +453,7 @@ class TableModel {
       { slots: [], data: {} }
     )
 
-    return { query: slots.join(', '), data }
+    return { query: slots.join(", "), data }
   }
 }
 
