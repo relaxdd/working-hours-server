@@ -1,50 +1,34 @@
-import { NextFunction, Request, Response } from "express"
-import { STATUS_CODES } from "../defines"
-import { ValidationError } from "joi"
-import ApiError from "../utils/errors/ApiError"
+import { NextFunction, Request, Response } from 'express'
+import { ValidationError } from 'joi'
+import ApiError from '../utils/errors/ApiError'
 
 function errorHandler(
-  err: { statusCode?: number; message?: string },
+  err: Error,
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const { statusCode = STATUS_CODES.INTERNAL_SERVER_ERROR } = err
   let { message } = err
 
   if (err instanceof ValidationError) {
     return res.status(400).send({
-      statusCode: 400,
-      message: err.message,
-      details: err.details,
+      message, details: err.details,
     })
   }
 
   if (err instanceof ApiError) {
     return res.status(err.status).send({
-      statusCode: err.status,
+      message, details: err.data,
+    })
+  }
+
+  return res.status(500).json({
+    message,
+    details: {
+      type: err?.constructor?.name || 'Error',
       message: err.message,
-      details: err.data,
-    })
-  }
-
-  if (err instanceof Error) {
-    return res.status(500).json({
-      statusCode: 500,
-      message: "На сервере произошла ошибка",
-      details: {
-        type: err?.constructor?.name || 'Error',
-        message: err.message,
-      },
-    })
-  }
-
-  if (statusCode === STATUS_CODES.INTERNAL_SERVER_ERROR) {
-    console.error(err)
-    message = "Что-то пошло не так"
-  }
-
-  return res.status(statusCode).send({ message })
+    },
+  })
 }
 
 export default errorHandler

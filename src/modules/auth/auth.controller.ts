@@ -42,12 +42,12 @@ class AuthController {
   public static async loginUser(req: Request, res: Response, next: NextFunction) {
     try {
       if (Validator.pattern.password.cyrillic.test(req.body.password)) {
-        const resp = {
-          error: 'В введенном пароле присутствует кириллица',
-          fields: ['password']
-        }
-
-        return res.status(400).json(resp)
+        return res.status(400).send({
+          message: 'Ошибка валидации поля', details: {
+            message: 'В введенном пароле присутствует кириллица',
+            fields: ['password']
+          },
+        })
       }
 
       const data = await AuthService.authorization(req.body)
