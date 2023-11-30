@@ -407,6 +407,8 @@ class TableModel {
         } //
         else if (row?.isUpdated && !row?.isCreated) {
           const updated = row?.updatedKeys || []
+          console.log(updated);
+          
           if (!updated.length) continue
 
           const unique = [...new Set(updated)]
