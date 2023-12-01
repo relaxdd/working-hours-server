@@ -4,6 +4,7 @@ CREATE TABLE "users" (
   "email" varchar(191) NOT NULL,
   "password" varchar(255) NOT NULL,
   "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp)
+  "is_activated" boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE "tables" (

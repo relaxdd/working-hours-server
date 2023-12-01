@@ -16,7 +16,7 @@ export interface IUser {
   email: string
   password: string
   created: Date
-  activated: boolean
+  is_activated: boolean
 }
 
 // ****** table ****** //

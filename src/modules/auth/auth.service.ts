@@ -5,6 +5,7 @@ import UserModel from '../../models/UserModel'
 import JwtService from '../../services/JwtService'
 import EmailService from '../../services/EmailService'
 import jwt from 'jsonwebtoken'
+import { CLIENT_HOST } from '../..'
 
 class AuthService {
   public async createUser(body: RegisterDtoType): Promise<void> {
@@ -56,7 +57,7 @@ class AuthService {
       throw new ApiError(error, 400)
     }
 
-    if (!user.activated) {
+    if (!user.is_activated) {
       const error = 'Вы не подтвердили свою почту, восстановление не возможно!'
       throw new ApiError(error, 400)
     }
@@ -72,12 +73,12 @@ class AuthService {
 
     const payload: IRestorePayload = {
       id: +user.id,
-      login: user.login
+      login: user.login,
     }
 
     const params = { expiresIn: '10m' }
     const token = jwt.sign(payload, secret, params)
-    const link = `http://localhost:3000/restore?token=${token}`
+    const link = CLIENT_HOST + `/restore?token=${token}`
 
     // ********** Mail ********** //
 

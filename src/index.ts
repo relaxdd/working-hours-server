@@ -40,7 +40,7 @@ const {
   monolite: IS_MONOLITE_ARCH = Boolean(+(process.env?.['IS_MONOLITE_ARCH'] || 0)),
 } = argv
 
-const CLIENT_HOST = process.env?.['CLIENT_HOST'] || configDefault.CLIENT_HOST
+export const CLIENT_HOST = process.env?.['CLIENT_HOST'] || configDefault.CLIENT_HOST
 
 function getErrorHandling() {
   if (argv.mode !== 'development') {
