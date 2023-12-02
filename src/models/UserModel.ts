@@ -1,6 +1,6 @@
 import { RegisterDtoType } from "../modules/auth/auth.types"
 import { pgdb } from "../index"
-import { IUser } from "../@types"
+import { IToken, IUser } from "../@types"
 
 class UserModel {
   public static async create({ login, email, password }: Omit<RegisterDtoType, "confirm">) {
@@ -31,6 +31,21 @@ class UserModel {
   public static async saveAuthToken(userId: number, token: string) {
     const query = `INSERT INTO "tokens" ("user_id", "token") VALUES ($1, $2)`
     await pgdb.none(query, [userId, token])
+  }
+
+  public static async deleteAuthToken(token: string) {
+    const query = `DELETE FROM "tokens" WHERE "token" = $1`
+    await pgdb.none(query, token)
+  }
+
+  public static async removeAuthToken(userId: number, token: string) {
+    const query = `DELETE FROM "tokens" WHERE "user_id" = $1 AND "token" = $2`
+    await pgdb.none(query, [userId, token])
+  }
+
+  public static async findUserToken(userId: number, token: string) {
+    const query = `SELECT * FROM "tokens"  WHERE "user_id" = $1 AND "token" = $2 LIMIT 1`
+    return await pgdb.oneOrNone<IToken>(query, [userId, token])
   }
 }
 

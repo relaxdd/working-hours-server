@@ -3,7 +3,8 @@ CREATE TABLE "users" (
   "login" varchar(50) UNIQUE NOT NULL,
   "email" varchar(191) NOT NULL,
   "password" varchar(255) NOT NULL,
-  "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp) "is_activated" boolean NOT NULL DEFAULT false
+  "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp),
+  "is_activated" boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE "tables" (
@@ -50,7 +51,8 @@ CREATE TABLE "tokens" (
   "id" SERIAL PRIMARY KEY NOT NULL,
   "user_id" integer NOT NULL,
   "type" varchar(50) NOT NULL DEFAULT 'authorize',
-  "token" varchar(255) NOT NULL
+  "token" varchar(255) NOT NULL,
+  "created" timestamp with time zone NOT NULL DEFAULT (current_timestamp),
 ); 
 
 ALTER TABLE "tables"

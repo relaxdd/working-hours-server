@@ -1,12 +1,10 @@
-export interface JwtAuthPayload {
-  id: number
-  login: string
-  email: string
-  iat: number
-  exp: number
+export interface IToken {
+  id: number,
+  user_id: number,
+  type: string,
+  token: string,
+  created: Date
 }
-
-export type JwtAuthMaybePayload = JwtAuthPayload | false
 
 // ****** user ****** //
 

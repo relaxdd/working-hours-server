@@ -1,12 +1,22 @@
 import { NextFunction, Request, Response } from "express"
 import Validator from "../../utils/Validator"
 import AuthService from "./auth.service"
-import JwtService from "../../services/JwtService"
-import { extractToken } from "../../middlewares/checkAuth"
+import { RequestWithUser, extractToken } from "../../middlewares/checkAuth"
 import { defaultError } from "../../utils/errors"
 import ApiError from "../../utils/errors/ApiError"
+import UserModel from "../../models/UserModel"
 
 class AuthController {
+  public static async logoutUser(req: RequestWithUser, res: Response, next: NextFunction) {
+    try {
+      const token = extractToken(req)!
+      await UserModel.removeAuthToken(req.user!.id, token)
+      return res.end()
+    } catch (err) {
+      return next(err)
+    }
+  }
+
   public static async registerUser(req: Request, res: Response, next: NextFunction) {
     try {
       if (!Validator.testLogin(req.body.login)) {
@@ -58,12 +68,9 @@ class AuthController {
     }
   }
 
-  public static decodeToken(req: Request, res: Response, next: NextFunction) {
+  public static async checkToken(req: RequestWithUser, res: Response, next: NextFunction) {
     try {
-      const token = extractToken(req)!
-      const user = JwtService.decode(token)
-
-      return res.json({ message: "Данные авторизации", user })
+      return res.json({ message: "Авторизация действительна", user: req?.user })
     } catch (err) {
       return next(err)
     }
@@ -86,14 +93,6 @@ class AuthController {
       await AuthService.restoreAccess(String(login))
 
       const message = "Ссылка для восстановления пароля отправлена на вашу почту!"
-      // const random = Math.random().toString()
-
-      // res.cookie("_wh_restore_process", random, {
-      //   domain: new URL(CLIENT_HOST).host,
-      //   expires: new Date(Date.now() + 600000),
-      //   httpOnly: false,
-      //   sameSite: "lax",
-      // })
 
       return res.json({ message })
     } catch (err) {

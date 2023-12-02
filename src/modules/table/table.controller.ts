@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express"
-import { RequestWithAuth } from "../../middlewares/checkAuth"
+import { RequestWithUser } from "../../middlewares/checkAuth"
 import TableModel from "../../models/TableModel"
 import ApiError from "../../utils/errors/ApiError"
 
@@ -81,7 +81,7 @@ class TableController {
   /* ======= Private Methods ======= */
 
   private static extractUserId(req: Request) {
-    const userId = (req as unknown as RequestWithAuth<{ id: number }>)?.user?.id
+    const userId = (req as RequestWithUser)?.user?.id
     if (!userId) throw new ApiError("Unauthorized", 401)
     return userId
   }

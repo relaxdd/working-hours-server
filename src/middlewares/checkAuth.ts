@@ -1,22 +1,44 @@
-import { NextFunction, Request, Response } from 'express'
-import JwtService from '../services/JwtService'
-import { JwtPayload } from 'jsonwebtoken'
+import { NextFunction, Request, Response } from "express"
+import JwtService from "../services/JwtService"
+import { JwtPayload } from "jsonwebtoken"
+import UserModel from "../models/UserModel"
 
-export type RequestWithAuth<T extends {} = {}> = Request & { user: JwtPayload & T }
-
-export function extractToken(req: Request) {
-  return req.header('Authorization')?.split(' ')?.at(-1)?.trim()
+export interface IUserDto {
+  id: number
+  login: string
+  email: string
 }
 
-export function buildCheckAuth(getTokenFn: (req: Request) => string | undefined, notAuthFn: (res: Response) => (Response | void)) {
-  return function (req: Request, res: Response, next: NextFunction): Response | void {
+export type JwtPayloadWithUser = JwtPayload & IUserDto
+
+export type RequestWithUser = Request & { user?: JwtPayloadWithUser }
+
+export function extractToken(req: Request) {
+  return req.header("Authorization")?.split(" ")?.at(-1)?.trim()
+}
+
+export function buildCheckAuth(
+  getTokenFn: (req: Request) => string | undefined,
+  notAuthFn: (res: Response) => Response | void
+) {
+  return async function (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> {
     const token = getTokenFn(req)
     if (!token) return notAuthFn(res)
 
-    const payload = JwtService.verify(token)
-    if (payload === false) return notAuthFn(res);
+    const payload = JwtService.verify(token) as JwtPayloadWithUser | false
 
-    (req as RequestWithAuth)['user'] = payload
+    if (payload === false) {
+      await UserModel.deleteAuthToken(token)
+      return notAuthFn(res)
+    }
+
+    const find = await UserModel.findUserToken(payload.id, token)
+    if (!find) return res.status(403).end()
+    ;(req as RequestWithUser)["user"] = payload
     next()
   }
 }
@@ -24,7 +46,7 @@ export function buildCheckAuth(getTokenFn: (req: Request) => string | undefined,
 const checkAuth = buildCheckAuth(
   (req) => extractToken(req),
   (res) => {
-    const error = 'Вы не авторизированны!'
+    const error = "Вы не авторизированны!"
     return res.status(401).json({ error })
   }
 )

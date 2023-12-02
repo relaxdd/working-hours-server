@@ -5,7 +5,8 @@ import { checkIsJson, validateAccess, validateLogin, validateRegister, validateR
 
 const authRouter = Router()
 
-authRouter.get('/validate', checkAuth, authController.decodeToken)
+authRouter.get('/validate', checkAuth, authController.checkToken)
+authRouter.get('/logout', checkAuth, authController.logoutUser)
 authRouter.get('/restore', validateAccess, authController.restoreAccess)
 
 authRouter.post('/signup', checkIsJson, validateRegister, authController.registerUser)
