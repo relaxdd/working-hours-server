@@ -5,7 +5,6 @@ import JwtService from "../../services/JwtService"
 import { extractToken } from "../../middlewares/checkAuth"
 import { defaultError } from "../../utils/errors"
 import ApiError from "../../utils/errors/ApiError"
-import { CLIENT_HOST } from "../.."
 
 class AuthController {
   public static async registerUser(req: Request, res: Response, next: NextFunction) {
@@ -46,14 +45,9 @@ class AuthController {
     try {
       if (Validator.pattern.password.cyrillic.test(req.body.password)) {
         const msg = "Ошибка валидации поля"
+        const err = "В введенном пароле присутствует кириллица"
 
-        return defaultError(
-          res,
-          new ApiError(msg, 400, {
-            message: "В введенном пароле присутствует кириллица",
-            fields: ["password"],
-          })
-        )
+        return defaultError(res, new ApiError(msg, 400, { message: err, fields: ["password"] }))
       }
 
       const data = await AuthService.authorization(req.body)
@@ -64,7 +58,7 @@ class AuthController {
     }
   }
 
-  public static validateToken(req: Request, res: Response, next: NextFunction) {
+  public static decodeToken(req: Request, res: Response, next: NextFunction) {
     try {
       const token = extractToken(req)!
       const user = JwtService.decode(token)

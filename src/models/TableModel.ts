@@ -80,10 +80,13 @@ class TableModel {
   }
 
   public static async loadTableYears(tableId: number): Promise<string[]> {
-    return (await pgdb.one<{ years: string[] }>(
-      `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "years"
-      FROM "table_rows" WHERE "table_id" = $1`, [tableId]
-    )).years
+    return (
+      await pgdb.one<{ years: string[] }>(
+        `SELECT ARRAY_AGG(DISTINCT TO_CHAR(table_rows.start, 'YYYY-MM')) AS "years"
+      FROM "table_rows" WHERE "table_id" = $1`,
+        [tableId]
+      )
+    ).years
   }
 
   public static async loadAllBound(obj: ValidateBound) {
@@ -161,19 +164,8 @@ class TableModel {
         [tableId]
       )
 
-      await t.none(
-        `DELETE
-         FROM "options"
-         WHERE "table_id" = $1`,
-        [tableId]
-      )
-
-      await t.none(
-        `DELETE
-         FROM "tables"
-         WHERE "id" = $1`,
-        [tableId]
-      )
+      await t.none(`DELETE FROM "options" WHERE "table_id" = $1`, [tableId])
+      await t.none(`DELETE FROM "tables" WHERE "id" = $1`, [tableId])
     })
   }
 
@@ -185,30 +177,31 @@ class TableModel {
    * @return Идентификатор созданной таблицы
    */
   public static async createTable(userId: number, name: string): Promise<ITable> {
-    const user = await pgdb.oneOrNone(
-      `SELECT *
-       FROM "users"
-       WHERE "id" = $1`,
-      [userId]
-    )
+    const user = await pgdb.oneOrNone(`SELECT * FROM "users" WHERE "id" = $1`, [userId])
 
     if (!user) throw new ApiError("Пользователя с таким ID не существует", 403)
 
-    const find = await pgdb.oneOrNone<ITable>('SELECT * FROM tables WHERE "name" = $1', name)
+    const find = await pgdb.oneOrNone<ITable>(
+      `SELECT * FROM tables WHERE "name" = $1 AND "user_id" = $2`,
+      [name, userId]
+    )
+
     if (find) throw new ApiError("Таблица с таким именем уже существует", 400)
 
     return await pgdb.task(async (t) => {
-      const query1 = 'INSERT INTO "tables" ("name", "user_id") VALUES ($1, $2) RETURNING *'
+      const query1 = `INSERT INTO "tables" ("name", "user_id") VALUES ($1, $2) RETURNING *`
       const table = await t.oneOrNone<ITable>(query1, [name, userId])
       if (!table) throw new ApiError("Не удалось создать таблицу", 500)
 
-      const query2 = 'INSERT INTO "options" ("table_id") VALUES ($1) RETURNING "id"'
+      const query2 = `INSERT INTO "options" ("table_id") VALUES ($1) RETURNING "id"`
       const option = await t.oneOrNone<{ id: number }>(query2, table.id)
       if (!option) throw new ApiError("Не удалось создать опции таблицы", 500)
 
-      const query3 = `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
-                      VALUES ('base', 250, 'Базовый', $1, $2)`
-      await t.none(query3, [option.id, table.id])
+      await t.none(
+        `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id")
+      VALUES ('base', 250, 'Базовый', $1, $2)`,
+        [option.id, table.id]
+      )
 
       return table
     })
@@ -224,8 +217,8 @@ class TableModel {
         if (!isCreated && !isUpdated) continue
 
         const query = isCreated
-          ? 'INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id") VALUES ($1, $2, $3, $4, $5)'
-          : 'UPDATE entities SET "key" = $1, "rate" = $2, "text" = $3 WHERE "option_id" = $4 AND "table_id" = $5 AND "id" = $6'
+          ? `INSERT INTO "entities" ("key", "rate", "text", "option_id", "table_id") VALUES ($1, $2, $3, $4, $5)`
+          : `UPDATE entities SET "key" = $1, "rate" = $2, "text" = $3 WHERE "option_id" = $4 AND "table_id" = $5 AND "id" = $6`
         const values = [entity.key, entity.rate, entity.text, entity.option_id, entity.table_id]
 
         if (!isCreated) values.push(entity.id)
@@ -407,8 +400,6 @@ class TableModel {
         } //
         else if (row?.isUpdated && !row?.isCreated) {
           const updated = row?.updatedKeys || []
-          console.log(updated);
-          
           if (!updated.length) continue
 
           const unique = [...new Set(updated)]
