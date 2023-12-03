@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express"
 import JwtService from "../services/JwtService"
 import { JwtPayload } from "jsonwebtoken"
 import UserModel from "../models/UserModel"
+import * as core from "express-serve-static-core"
 
 export interface IUserDto {
   id: number
@@ -11,7 +12,13 @@ export interface IUserDto {
 
 export type JwtPayloadWithUser = JwtPayload & IUserDto
 
-export type RequestWithUser = Request & { user?: JwtPayloadWithUser }
+export type RequestWithUser<
+  P = core.ParamsDictionary,
+  ResBody = any,
+  ReqBody = any,
+  ReqQuery = qs.ParsedQs,
+  Locals extends Record<string, any> = Record<string, any>
+> = Request<P, ResBody, ReqBody, ReqQuery, Locals> & { user?: JwtPayloadWithUser }
 
 export function extractToken(req: Request) {
   return req.header("Authorization")?.split(" ")?.at(-1)?.trim()

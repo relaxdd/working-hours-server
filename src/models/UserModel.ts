@@ -1,8 +1,19 @@
 import { RegisterDtoType } from "../modules/auth/auth.types"
 import { pgdb } from "../index"
 import { IToken, IUser } from "../@types"
+import { ProfileSchema } from "../modules/auth/auth.scheme"
 
 class UserModel {
+  public static async updateProfile(userId: number, body: ProfileSchema) {
+    if (!body.currentPassword) {
+      const query = `UPDATE "users" SET "email" = $1 WHERE "id" = $2`
+      await pgdb.none(query, [body.userEmail, userId])
+    } else {
+      const query = `UPDATE "users" SET "email" = $1 "password" = $2 WHERE "id" = $3`
+      await pgdb.none(query, [body.userEmail, body.newPassword!, userId])
+    }
+  }
+
   public static async create({ login, email, password }: Omit<RegisterDtoType, "confirm">) {
     const query = `INSERT INTO "users" ("login", "email", "password") VALUES ($1, $2, $3);`
     await pgdb.none(query, [login, email, password])
@@ -28,7 +39,11 @@ class UserModel {
     return await pgdb.oneOrNone<IUser>(query, login)
   }
 
-  public static async saveAuthToken(userId: number, token: string) {
+  public static async saveAuthToken(userId: number, token: string, prev?: string) {
+    if (prev) {
+      await pgdb.none(`DELETE FROM "tokens" WHERE "user_id" = $1 AND "token" = $2`, [userId, prev])
+    }
+
     const query = `INSERT INTO "tokens" ("user_id", "token") VALUES ($1, $2)`
     await pgdb.none(query, [userId, token])
   }

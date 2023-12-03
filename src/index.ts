@@ -41,7 +41,6 @@ const {
 } = argv
 
 export const CLIENT_HOST = process.env?.['CLIENT_HOST'] || configDefault.CLIENT_HOST
-console.log(CLIENT_HOST);
 
 function getErrorHandling() {
   if (argv.mode !== 'development') {

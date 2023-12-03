@@ -6,6 +6,7 @@ import JwtService from "../../services/JwtService"
 import EmailService from "../../services/EmailService"
 import jwt from "jsonwebtoken"
 import { CLIENT_HOST } from "../.."
+import { ProfileSchema } from "./auth.scheme"
 
 class AuthService {
   public async createUser(body: RegisterDtoType): Promise<void> {
@@ -18,6 +19,44 @@ class AuthService {
 
     const password = await bcryptjs.hash(body.password, 10)
     await UserModel.create({ login: body.login, email: body.email, password })
+  }
+
+  public async editProfile(userId: number, body: ProfileSchema, token: string) {
+    const user = await UserModel.load(userId)
+    const prevEmail = user!.email
+
+    if (!user) {
+      const error = "Пользователь с таким логином не найден"
+      throw new ApiError(error, 400, { fields: ["login"] })
+    }
+
+    if (body.currentPassword) {
+      const verify = await bcryptjs.compare(body.currentPassword, user.password)
+
+      if (!verify) {
+        const error = "Введен не верный пароль"
+        throw new ApiError(error, 400, { fields: ["currentPassword"] })
+      }
+
+      if (body.newPassword !== body.repeatPassword) {
+        const error = "Новые пароли отличаются"
+        throw new ApiError(error, 400, { fields: ["repeatPassword"] })
+      }
+    }
+
+    await UserModel.updateProfile(userId, body)
+
+    if (body.userEmail !== prevEmail) {
+      const { id, login } = user
+      const userDto = { id, login, email: body.userEmail }
+      const jwt = JwtService.sign(userDto)
+
+      await UserModel.saveAuthToken(id, jwt, token)
+
+      return { jwt, user: userDto }
+    }
+
+    return null
   }
 
   public async authorization(body: { login: string; password: string }) {
@@ -37,8 +76,8 @@ class AuthService {
 
     const { id, login, email } = user
     const userDto = { id, login, email }
-
     const jwt = JwtService.sign(userDto)
+
     await UserModel.saveAuthToken(id, jwt)
 
     return { jwt, user: userDto }
